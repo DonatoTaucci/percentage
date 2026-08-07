@@ -9,7 +9,7 @@
    perde solo la sincronizzazione con l'app. */
 window.CONFIG = {
   // Incolla qui la publishable key creata su dashboard.clerk.com (pk_test_... o pk_live_...)
-  CLERK_PUBLISHABLE_KEY: '',
+  CLERK_PUBLISHABLE_KEY: 'pk_test_ZmxlZXQtcGlnZW9uLTMwLmNsZXJrLmFjY291bnRzLmRldiQ',
 
   // Progetto Supabase "percentage", già creato e configurato
   SUPABASE_URL: 'https://qshzkxqfoknbkajfreip.supabase.co',
