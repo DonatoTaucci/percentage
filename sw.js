@@ -1,6 +1,15 @@
-/* sw.js — cache offline. Strategia: network-first per l'HTML,
-   cache-first per gli asset statici. */
-var CACHE = 'percentage-v3';
+/* sw.js — cache offline.
+
+   Strategia: network-first per tutto ciò che è codice o configurazione
+   (HTML, CSS, JS, manifest), cache-first solo per le immagini.
+
+   Il codice è servito dalla rete di proposito. Con la strategia opposta
+   una modifica al sito restava invisibile finché non cambiava il nome
+   della cache: è successo con la chiave di Clerk in js/config.js, che i
+   browser hanno continuato a leggere vuota dopo che era stata aggiunta.
+   Sono file di pochi kB: quando la rete c'è, riprenderli costa poco;
+   quando non c'è, la copia in cache resta e il sito funziona offline. */
+var CACHE = 'percentage-v4';
 var ASSETS = [
   './',
   './index.html',
@@ -44,29 +53,31 @@ self.addEventListener('fetch', function (e) {
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // niente cache per l'API di Claude
 
-  if (req.mode === 'navigate') {
+  var aggiorna = function (res) {
+    if (res && res.status === 200 && res.type === 'basic') {
+      var copy = res.clone();
+      caches.open(CACHE).then(function (c) { c.put(req, copy); });
+    }
+    return res;
+  };
+
+  // Codice e configurazione: prima la rete, la cache è la riserva per l'offline.
+  if (req.mode === 'navigate' || /\.(html|css|js|mjs|webmanifest|json)$/.test(url.pathname)) {
     e.respondWith(
-      fetch(req).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (c) { c.put(req, copy); });
-        return res;
-      }).catch(function () {
-        return caches.match(req).then(function (r) { return r || caches.match('./index.html'); });
+      fetch(req).then(aggiorna).catch(function () {
+        return caches.match(req).then(function (r) {
+          if (r) return r;
+          return req.mode === 'navigate' ? caches.match('./index.html') : Response.error();
+        });
       })
     );
     return;
   }
 
+  // Immagini e resto: prima la cache, sono file che non cambiano.
   e.respondWith(
     caches.match(req).then(function (cached) {
-      if (cached) return cached;
-      return fetch(req).then(function (res) {
-        if (res && res.status === 200 && res.type === 'basic') {
-          var copy = res.clone();
-          caches.open(CACHE).then(function (c) { c.put(req, copy); });
-        }
-        return res;
-      });
+      return cached || fetch(req).then(aggiorna);
     })
   );
 });
