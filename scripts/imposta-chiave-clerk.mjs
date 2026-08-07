@@ -34,17 +34,13 @@ if (!/^pk_(test|live)_[A-Za-z0-9$_\-./=]+$/.test(chiave)) {
 
 /* --- sito --- */
 const configJs = resolve(radice, 'js', 'config.js');
-let sito = readFileSync(configJs, 'utf8');
-const primaSito = sito;
-sito = sito.replace(
-  /CLERK_PUBLISHABLE_KEY:\s*'[^']*'/,
-  `CLERK_PUBLISHABLE_KEY: '${chiave}'`
-);
-if (sito === primaSito) {
+const sito = readFileSync(configJs, 'utf8');
+const riga = /CLERK_PUBLISHABLE_KEY:\s*'[^']*'/;
+if (!riga.test(sito)) {
   console.error('Non ho trovato CLERK_PUBLISHABLE_KEY in js/config.js: controlla il file.');
   process.exit(1);
 }
-writeFileSync(configJs, sito);
+writeFileSync(configJs, sito.replace(riga, `CLERK_PUBLISHABLE_KEY: '${chiave}'`));
 
 /* --- app --- */
 const envPath = resolve(radice, 'mobile', '.env');

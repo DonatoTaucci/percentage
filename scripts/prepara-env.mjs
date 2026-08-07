@@ -3,7 +3,7 @@
    chi clona il repository non lo trova: questo script lo ricrea da solo,
    ed è agganciato a "npm install". */
 
-import { existsSync, copyFileSync } from 'node:fs';
+import { existsSync, copyFileSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,4 +23,7 @@ if (!existsSync(modello)) {
 
 copyFileSync(modello, env);
 console.log('Creato mobile/.env da .env.example.');
-console.log('Manca solo la publishable key di Clerk: node scripts/imposta-chiave-clerk.mjs pk_test_...');
+
+if (!/^EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_(test|live)_/m.test(readFileSync(env, 'utf8'))) {
+  console.log('Manca la publishable key di Clerk: node scripts/imposta-chiave-clerk.mjs pk_test_...');
+}

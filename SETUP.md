@@ -1,7 +1,8 @@
 # Configurazione
 
-Tre pezzi: **server** (già fatto), **account Clerk** (10 minuti, serve il tuo login),
-**pubblicazione dell'app** sugli store.
+Tre pezzi: **server** (già fatto), **account Clerk** (fatto, manca solo il collegamento
+a Supabase: [§2c](#2c-collega-clerk-a-supabase--da-fare-tu)), **pubblicazione dell'app**
+sugli store.
 
 ---
 
@@ -22,44 +23,45 @@ Senza un token valido, quella chiave non legge nulla.
 
 ---
 
-## 2. Clerk — da fare tu
+## 2. Clerk
 
-Serve il tuo account: non posso crearlo io. Sono tre passaggi, dieci minuti.
+### 2a. Applicazione creata ✅
 
-### 2a. Crea l'applicazione
+Applicazione di sviluppo `fleet-pigeon-30`, publishable key
+`pk_test_ZmxlZXQtcGlnZW9uLTMwLmNsZXJrLmFjY291bnRzLmRldiQ`.
 
-1. Vai su **https://dashboard.clerk.com** e crea un'applicazione, per esempio `Percentage`.
-2. In **User & Authentication → Email, Phone, Username**: lascia attivo **Email address**
-   e come metodo di verifica **Email verification code**. L'app usa il codice via email,
-   quindi non servono password.
-3. In **API Keys** copia la **Publishable key** (inizia con `pk_test_` o `pk_live_`).
+Controlla che in **User & Authentication → Email, Phone, Username** sia attivo
+**Email address** con verifica **Email verification code**: entrambi i client accedono
+con il codice via email, non con la password.
 
-### 2b. Metti la chiave nei due progetti
+### 2b. Chiave inserita ✅
 
-Un comando solo, dalla radice del repository:
+È già in `js/config.js` (sito). Per l'app sta in `mobile/.env`, che non è versionato:
+`npm install` lo crea da `.env.example`, poi
 
 ```bash
-node scripts/imposta-chiave-clerk.mjs pk_test_...
+node scripts/imposta-chiave-clerk.mjs pk_test_ZmxlZXQtcGlnZW9uLTMwLmNsZXJrLmFjY291bnRzLmRldiQ
 ```
 
-Scrive la chiave sia in `js/config.js` (sito) sia in `mobile/.env` (app), e rifiuta la
-secret key se la incolli per sbaglio.
+lo completa. Lo stesso comando riscrive anche `js/config.js`, ed è quello da usare il
+giorno in cui passi a una chiave `pk_live_`. Rifiuta la secret key, se la incolli per
+sbaglio.
 
 > **Sulle due chiavi.** La *publishable key* è pubblica per costruzione: viaggia nel
 > browser di chiunque usi un'applicazione Clerk, e da sola non dà accesso a nulla.
 > La *secret key* (`sk_...`) è tutt'altra cosa: non serve a questo progetto, non va messa
 > nel client e non va condivisa con nessuno.
 
-### 2c. Collega Clerk a Supabase
+### 2c. Collega Clerk a Supabase — da fare tu
 
-Perché il server accetti i token di Clerk servono due clic, uno per pannello:
+Ultimo passaggio rimasto, e serve il tuo login: due clic, uno per pannello.
 
-1. Apri **https://dashboard.clerk.com/setup/supabase** e segui la procedura guidata:
-   Clerk configura da solo i propri token per Supabase (aggiunge il claim `role:
-   authenticated`, che è quello che le policy del database si aspettano) e ti mostra il
-   **Clerk domain**, del tipo `tuo-nome.clerk.accounts.dev`.
+1. Apri **https://dashboard.clerk.com/setup/supabase** e segui la procedura guidata.
+   Clerk configura da solo i propri token per Supabase — aggiunge il claim `role:
+   authenticated`, che è quello che le policy del database si aspettano — e ti mostra il
+   **Clerk domain**. Per questa applicazione è `fleet-pigeon-30.clerk.accounts.dev`.
 2. Apri **https://supabase.com/dashboard/project/qshzkxqfoknbkajfreip/auth/third-party**,
-   premi **Add provider**, scegli **Clerk** e incolla il Clerk domain del passo 1.
+   premi **Add provider**, scegli **Clerk** e incolla quel dominio.
 
 Da quel momento Supabase verifica i token dell'utente e le policy per riga filtrano i dati
 sull'id utente (`sub`). Prima di questo passaggio la sincronizzazione risponde con un errore
@@ -158,8 +160,8 @@ Serve **https** (tutti e tre lo danno di default): senza, il browser blocca GPS 
 
 | File | Contiene | Nel repository |
 |---|---|---|
-| `js/config.js` | chiavi pubbliche del sito | sì (chiave Clerk da riempire) |
-| `mobile/.env` | chiavi pubbliche dell'app | **no**, è in .gitignore |
+| `js/config.js` | chiavi pubbliche del sito | sì, già complete |
+| `mobile/.env` | chiavi pubbliche dell'app | **no**, è in .gitignore: lo crea `npm install` |
 | `mobile/.env.example` | modello da copiare | sì |
 | `mobile/eas.json` | profili di build e invio | sì |
 | `mobile/app.json` | permessi, plugin, identificativi | sì |

@@ -14,7 +14,8 @@ Il progetto è composto da tre parti che condividono lo stesso account e gli ste
 Entrambi i client sono **local-first**: funzionano offline e sincronizzano appena c'è rete.
 Senza account restano perfettamente utilizzabili, solo senza condivisione fra dispositivi.
 
-👉 **Prima configurazione: [SETUP.md](SETUP.md)** (server già pronto, manca la chiave Clerk).
+👉 **Prima configurazione: [SETUP.md](SETUP.md)** (server e chiavi già pronti, manca solo
+il collegamento fra Clerk e Supabase).
 
 ---
 
