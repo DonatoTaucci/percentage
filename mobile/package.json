@@ -40,7 +40,9 @@
     "build:android": "eas build --platform android --profile production",
     "build:ios": "eas build --platform ios --profile production",
     "submit:android": "eas submit --platform android",
-    "submit:ios": "eas submit --platform ios"
+    "submit:ios": "eas submit --platform ios",
+    "postinstall": "node ../scripts/prepara-env.mjs",
+    "clerk": "node ../scripts/imposta-chiave-clerk.mjs"
   },
   "private": true
 }

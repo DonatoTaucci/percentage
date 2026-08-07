@@ -24,40 +24,51 @@ Senza un token valido, quella chiave non legge nulla.
 
 ## 2. Clerk — da fare tu
 
-Serve il tuo account: non posso crearlo io.
+Serve il tuo account: non posso crearlo io. Sono tre passaggi, dieci minuti.
+
+### 2a. Crea l'applicazione
 
 1. Vai su **https://dashboard.clerk.com** e crea un'applicazione, per esempio `Percentage`.
 2. In **User & Authentication → Email, Phone, Username**: lascia attivo **Email address**
    e come metodo di verifica **Email verification code**. L'app usa il codice via email,
    quindi non servono password.
 3. In **API Keys** copia la **Publishable key** (inizia con `pk_test_` o `pk_live_`).
-   La *Secret key* non serve a nulla qui e non va condivisa.
-4. Incolla la publishable key in due punti:
 
-   **Sito** — `js/config.js`:
-   ```js
-   CLERK_PUBLISHABLE_KEY: 'pk_test_...',
-   ```
+### 2b. Metti la chiave nei due progetti
 
-   **App** — `mobile/.env` (copia `mobile/.env.example` se non esiste):
-   ```
-   EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-   ```
+Un comando solo, dalla radice del repository:
 
-### 2b. Collegare Clerk a Supabase
+```bash
+node scripts/imposta-chiave-clerk.mjs pk_test_...
+```
 
-Perché il server accetti i token di Clerk:
+Scrive la chiave sia in `js/config.js` (sito) sia in `mobile/.env` (app), e rifiuta la
+secret key se la incolli per sbaglio.
 
-1. Nel **dashboard Clerk** apri **Configure → Sessions → JWT templates** e crea (o verifica)
-   l'integrazione **Supabase**. Clerk mostra il **Clerk domain** (qualcosa come
-   `https://tuo-nome.clerk.accounts.dev`).
-2. Nel **dashboard Supabase** del progetto `percentage`, vai in
-   **Authentication → Sign In / Providers → Third-Party Auth**, aggiungi **Clerk**
-   e incolla il **Clerk domain**.
+> **Sulle due chiavi.** La *publishable key* è pubblica per costruzione: viaggia nel
+> browser di chiunque usi un'applicazione Clerk, e da sola non dà accesso a nulla.
+> La *secret key* (`sk_...`) è tutt'altra cosa: non serve a questo progetto, non va messa
+> nel client e non va condivisa con nessuno.
 
-Da quel momento il token dell'utente viene verificato da Supabase e le policy per riga
-filtrano i dati sull'id utente (`sub`). Fino a quel momento la sincronizzazione risponderà
-con un errore di autorizzazione, mentre app e sito continuano a funzionare in locale.
+### 2c. Collega Clerk a Supabase
+
+Perché il server accetti i token di Clerk servono due clic, uno per pannello:
+
+1. Apri **https://dashboard.clerk.com/setup/supabase** e segui la procedura guidata:
+   Clerk configura da solo i propri token per Supabase (aggiunge il claim `role:
+   authenticated`, che è quello che le policy del database si aspettano) e ti mostra il
+   **Clerk domain**, del tipo `tuo-nome.clerk.accounts.dev`.
+2. Apri **https://supabase.com/dashboard/project/qshzkxqfoknbkajfreip/auth/third-party**,
+   premi **Add provider**, scegli **Clerk** e incolla il Clerk domain del passo 1.
+
+Da quel momento Supabase verifica i token dell'utente e le policy per riga filtrano i dati
+sull'id utente (`sub`). Prima di questo passaggio la sincronizzazione risponde con un errore
+di autorizzazione, mentre app e sito continuano a funzionare in locale.
+
+> **Non usare i "JWT templates".** Il vecchio metodo, che condivideva il JWT secret del
+> progetto Supabase con Clerk, è deprecato da aprile 2025: condividere quel segreto è una
+> cattiva pratica e ruotarlo comporta disservizi. La procedura sopra usa la verifica a
+> chiave asimmetrica, che non richiede segreti condivisi.
 
 ### Come verificare che funzioni
 
