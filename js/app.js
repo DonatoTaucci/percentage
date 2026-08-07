@@ -175,6 +175,103 @@
         openShiftForm({ date: el.dataset.date || Calc.today() });
         break;
 
+      /* --- timbratura --- */
+      case 'punch-in':
+        Store.startPunch();
+        toast('Entrata registrata alle ' + Calc.timeFromMs(Date.now()) + '.');
+        render();
+        break;
+
+      case 'punch-break': {
+        var inPausa = Calc.punchTotals(Store.punch()).inPausa;
+        Store.toggleBreak();
+        toast(inPausa ? 'Pausa terminata.' : 'Pausa iniziata.');
+        render();
+        break;
+      }
+
+      case 'punch-out': {
+        var turno = Store.stopPunch();
+        if (turno) {
+          var min = Calc.shiftMinutes(turno, Store.settings());
+          toast('Uscita registrata: ' + Calc.fmtDuration(min) + ' (' + turno.start + '–' + turno.end + ').', 4000);
+        }
+        render();
+        break;
+      }
+
+      case 'punch-cancel':
+        if (global.confirm('Annullare la timbratura in corso senza registrare nulla?')) {
+          Store.cancelPunch();
+          toast('Timbratura annullata.');
+          render();
+        }
+        break;
+
+      case 'quick-standard': {
+        var st = Store.settings();
+        var o = st.orario || {};
+        if (!o.inizio || !o.fine) { toast('Imposta prima l\'orario standard.'); break; }
+        Store.saveShift({
+          date: Calc.today(), start: o.inizio, end: o.fine,
+          breakMin: st.pausaPredefinita, tipo: 'lavoro'
+        });
+        toast('Giornata standard registrata.');
+        render();
+        break;
+      }
+
+      /* --- GPS --- */
+      case 'geo-capture':
+        toast('Rilevo la posizione…');
+        Geo.posizioneCorrente().then(function (pos) {
+          Geo.set({ lat: pos.lat, lng: pos.lng });
+          toast('Posizione salvata (precisione ' + Geo.fmtDist(pos.acc) + ').', 3500);
+          Geo.sync();
+          render();
+        }).catch(function (err) {
+          toast(err.message, 4500);
+        });
+        break;
+
+      case 'geo-toggle': {
+        var attiva = el.checked;
+        if (!attiva) {
+          Geo.set({ attivo: false });
+          Geo.stop();
+          toast('Rilevamento GPS disattivato.');
+          render();
+          break;
+        }
+        if (!Geo.supported()) { el.checked = false; toast('Questo browser non supporta la geolocalizzazione.', 4000); break; }
+        if (!Geo.isSecure()) { el.checked = false; toast('Serve una connessione https per usare il GPS.', 4500); break; }
+        Geo.chiediPermessoNotifiche().then(function () {
+          return Geo.posizioneCorrente().catch(function () { return null; });
+        }).then(function (pos) {
+          var patch = { attivo: true };
+          if (pos && Geo.cfg().lat === null) { patch.lat = pos.lat; patch.lng = pos.lng; }
+          Geo.set(patch);
+          Geo.sync();
+          toast(Geo.cfg().lat === null
+            ? 'Attivo. Salva la posizione del lavoro mentre sei sul posto.'
+            : 'Rilevamento GPS attivo.', 4000);
+          render();
+        });
+        break;
+      }
+
+      case 'geo-test':
+        toast('Verifico…');
+        Geo.posizioneCorrente().then(function (pos) {
+          var c = Geo.cfg();
+          var d = Geo.distanza(pos.lat, pos.lng, c.lat, c.lng);
+          toast('Sei a ' + Geo.fmtDist(d) + ' dal punto salvato (raggio ' + c.raggio + ' m): ' +
+            (d <= c.raggio ? 'dentro' : 'fuori') + '.', 5000);
+        }).catch(function (err) {
+          toast(err.message, 4500);
+        });
+        break;
+
       case 'edit-shift':
         openShiftForm(Store.getShift(el.dataset.id));
         break;
@@ -326,13 +423,41 @@
   function onChange(e) {
     var el = e.target;
 
+    if (el.dataset && el.dataset.geo) {
+      var gk = el.dataset.geo;
+      var gv;
+      if (el.type === 'checkbox') gv = el.checked;
+      else if (el.type === 'number') gv = parseInt(el.value, 10) || 0;
+      else gv = el.value;
+      var gp = {};
+      gp[gk] = gv;
+      Geo.set(gp);
+      Geo.sync();
+      toast('Impostazione aggiornata.');
+      if (gk === 'raggio' || gk === 'dwell') Geo.render();
+      return;
+    }
+
     if (el.dataset && el.dataset.set) {
       var k = el.dataset.set;
       var patch = {};
-      if (el.type === 'checkbox') patch[k] = el.checked;
-      else if (el.type === 'number' || k === 'inizioSettimana') patch[k] = parseFloat(el.value) || 0;
-      else patch[k] = el.value;
+      var val;
+      if (el.type === 'checkbox') val = el.checked;
+      else if (el.type === 'number' || k === 'inizioSettimana' || k === 'arrotondamento') val = parseFloat(el.value) || 0;
+      else val = el.value;
+
+      if (k.indexOf('.') > 0) {           // es. "orario.inizio"
+        var parti = k.split('.');
+        var nested = Object.assign({}, Store.settings()[parti[0]] || {});
+        nested[parti[1]] = val;
+        patch[parti[0]] = nested;
+      } else {
+        patch[k] = val;
+      }
+
       Store.updateSettings(patch);
+      // L'orario standard ridefinisce le ore contrattuali: la vista va ridisegnata.
+      if (k.indexOf('orario.') === 0 || k === 'pausaRetribuita') render();
       toast('Impostazione aggiornata.');
       return;
     }
@@ -371,6 +496,43 @@
       var v = e.target.value.trim();
       if (v) aiSend(v);
     }
+  }
+
+  /* ---------------- cronometro ---------------- */
+
+  var avvisoPausaDato = false;
+
+  /* Aggiorna solo i nodi del cronometro: ridisegnare tutto ogni secondo
+     farebbe perdere il focus ai campi di testo. */
+  function tickPunch() {
+    var p = Store.punch();
+    var clock = document.getElementById('punch-clock');
+    if (!p) { avvisoPausaDato = false; return; }
+
+    var t = Calc.punchTotals(p);
+
+    // Promemoria una tantum se la pausa resta aperta troppo a lungo.
+    if (t.inPausa && !avvisoPausaDato && (Date.now() - t.pausaCorrenteDa) > 3 * 3600000) {
+      avvisoPausaDato = true;
+      Geo.notify('Pausa ancora aperta', 'La pausa è aperta da più di 3 ore: se hai finito il turno, timbra l\'uscita.', 'pausa-lunga');
+    }
+    if (!t.inPausa) avvisoPausaDato = false;
+
+    if (!clock || ctx.view !== 'dashboard') return;
+
+    var st = Store.settings();
+    var giorno = Calc.daySummary(p.date, Store.shifts(), st);
+    var target = giorno.target > 0 ? giorno.target : Math.round(st.oreGiornaliere * 60);
+    var lavoroTot = giorno.worked + t.lavoro;
+    var pct = target > 0 ? (lavoroTot / target) * 100 : 0;
+
+    clock.textContent = UI.fmtClock(t.lavoroSec);
+    var meter = document.getElementById('punch-meter');
+    if (meter) meter.innerHTML = Charts.meter(pct, 'var(--accent)');
+    var pctEl = document.getElementById('punch-pct');
+    if (pctEl) pctEl.textContent = Calc.fmtPct(pct) + ' di ' + Calc.fmtDuration(target);
+    var det = document.getElementById('punch-detail');
+    if (det) det.innerHTML = UI.punchDetail(p, t, Calc.expectedEnd(p, st, Math.max(0, target - giorno.worked)));
   }
 
   /* ---------------- avvio ---------------- */
@@ -416,6 +578,17 @@
     });
 
     render();
+
+    setInterval(tickPunch, 1000);
+    Geo.sync();
+
+    // Rientrando nell'app: ridisegno (la data può essere cambiata) e riattivo il GPS.
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        Geo.sync();
+        render();
+      }
+    });
 
     if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
       navigator.serviceWorker.register('sw.js').catch(function (err) {

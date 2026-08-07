@@ -45,39 +45,23 @@
       targetOverrideMinutes: st.oreMensiliFisse > 0 ? Math.round(st.oreMensiliFisse * 60) : 0
     });
 
+    // Le ore della timbratura aperta entrano subito nei totali di settimana e mese.
+    var punch = Store.punch();
+    var tp = punch ? Calc.punchTotals(punch) : null;
+    week = conTimbratura(week, punch, tp);
+    month = conTimbratura(month, punch, tp);
+
     var html = '';
 
-    /* --- oggi --- */
-    html += '<div class="card pad-lg">';
-    html += '<div class="row-between" style="margin-bottom:14px">';
-    html += '<div><div class="card-title" style="margin:0">Oggi</div><strong>' + esc(Calc.fmtDate(oggi, 'long')) + '</strong></div>';
-    html += '<button class="btn primary sm" data-action="new-shift" data-date="' + oggi + '">+ Turno</button>';
-    html += '</div>';
-
-    html += '<div class="pct-hero">';
-    html += Charts.donut(day.pct, {
-      size: 128,
-      label: day.target > 0 ? Calc.fmtPct(day.pct) : (day.worked > 0 ? '—' : '—'),
-      sub: day.target > 0 ? 'del previsto' : 'giorno non lavorativo'
-    });
-    html += '<div class="pct-hero-info grid grid-3" style="gap:12px">';
-    html += stat('Lavorate', Calc.fmtDuration(day.worked), day.pausa ? 'pausa ' + Calc.fmtDuration(day.pausa) : '', 'sm');
-    html += stat('Previste', day.target > 0 ? Calc.fmtDuration(day.target) : '—', '', 'sm');
-    html += stat('Straordinario', day.overtime > 0 ? '+' + Calc.fmtDuration(day.overtime) : '—', '', 'sm');
-    html += '</div></div>';
-
-    if (day.entries.length) {
-      html += '<div style="margin-top:16px">' + day.entries.map(shiftRow).join('') + '</div>';
-    } else {
-      html += '<p class="muted small" style="margin:16px 0 0">Nessun turno registrato per oggi.</p>';
-    }
-    html += '</div>';
+    /* --- oggi: timbratura --- */
+    html += punchCard(day, st, oggi);
 
     /* --- settimana --- */
     var giorniW = week.days.map(function (d) {
+      var live = (punch && punch.date === d.date) ? tp.lavoro : 0;
       return {
         label: Calc.GIORNI_BREVI[Calc.dow(d.date)].charAt(0).toUpperCase(),
-        value: d.worked / 60,
+        value: (d.worked + live) / 60,
         target: d.target / 60,
         highlight: d.date === oggi,
         color: d.date === oggi ? 'var(--accent)' : (d.worked > d.target && d.target > 0 ? 'var(--violet)' : 'var(--accent-soft)'),
@@ -120,6 +104,129 @@
     return html;
   }
 
+  /* ---------- timbratura ---------- */
+
+  function orarioStandardTesto(st) {
+    var o = st.orario || {};
+    var t = esc(o.inizio || '—') + ' – ' + esc(o.fine || '—');
+    if (o.pausaInizio && o.pausaFine) t += ' · pausa ' + esc(o.pausaInizio) + '–' + esc(o.pausaFine);
+    return t;
+  }
+
+  function punchCard(day, st, oggi) {
+    var p = Store.punch();
+    var html = '<div class="card pad-lg">';
+
+    html += '<div class="row-between" style="margin-bottom:14px">';
+    html += '<div><div class="card-title" style="margin:0">Oggi</div><strong>' + esc(Calc.fmtDate(oggi, 'long')) + '</strong></div>';
+    html += '<span class="tiny muted">Standard ' + orarioStandardTesto(st) + '</span>';
+    html += '</div>';
+
+    if (p) {
+      /* --- timbratura in corso --- */
+      var t = Calc.punchTotals(p);
+      var giornoP = Calc.daySummary(p.date, Store.shifts(), st);
+      var target = giornoP.target > 0 ? giornoP.target : Math.round(st.oreGiornaliere * 60);
+      var lavoroTot = giornoP.worked + t.lavoro;
+      var pct = target > 0 ? (lavoroTot / target) * 100 : 0;
+      var uscita = Calc.expectedEnd(p, st, Math.max(0, target - giornoP.worked));
+
+      if (t.giorniFa >= 1) {
+        html += '<div class="note" style="margin-bottom:14px;border-color:var(--warn)"><strong>Timbratura aperta dal ' +
+          esc(Calc.fmtDate(p.date, 'medium')) + '.</strong> Se hai dimenticato di uscire, timbra l\'uscita e correggi l\'orario dal turno salvato.</div>';
+      }
+
+      html += '<div class="punch-live">';
+      html += '<div class="punch-clock-wrap">';
+      html += '<span class="badge ' + (t.inPausa ? 'warn' : 'ok') + '" id="punch-state">' +
+        '<span class="dot-live"></span>' + (t.inPausa ? 'In pausa' : 'In turno') + '</span>';
+      html += '<div class="punch-clock" id="punch-clock">' + fmtClock(t.lavoroSec) + '</div>';
+      html += '<div class="tiny muted" id="punch-detail">' + punchDetail(p, t, uscita) + '</div>';
+      html += '</div>';
+
+      html += '<div class="punch-side">';
+      html += '<div class="row-between tiny muted" style="margin-bottom:6px">' +
+        '<span id="punch-pct">' + Calc.fmtPct(pct) + ' di ' + Calc.fmtDuration(target) + '</span>' +
+        (lavoroTot > target && target > 0 ? '<span class="badge warn">Straord. ' + Calc.fmtDuration(lavoroTot - target) + '</span>' : '') +
+        '</div>';
+      // Durante il turno la barra resta neutra: una percentuale bassa a metà
+      // mattina non è un problema da segnalare in rosso.
+      html += '<div id="punch-meter">' + Charts.meter(pct, 'var(--accent)') + '</div>';
+      html += '<div class="row" style="margin-top:14px;gap:8px">';
+      html += '<button class="btn' + (t.inPausa ? ' primary' : '') + '" data-action="punch-break">' +
+        (t.inPausa ? 'Riprendi' : 'Vai in pausa') + '</button>';
+      html += '<button class="btn' + (t.inPausa ? '' : ' primary') + '" data-action="punch-out">Timbra uscita</button>';
+      html += '</div>';
+      html += '<button class="btn sm ghost" style="margin-top:8px" data-action="punch-cancel">Annulla timbratura</button>';
+      html += '</div>';
+      html += '</div>';
+
+    } else {
+      /* --- nessuna timbratura --- */
+      html += '<div class="pct-hero">';
+      html += Charts.donut(day.pct, {
+        size: 128,
+        label: Calc.fmtPct(day.pct),
+        sub: day.target > 0 ? 'del previsto' : 'giorno non lavorativo'
+      });
+      html += '<div class="pct-hero-info">';
+      html += '<div class="grid grid-3" style="gap:12px">';
+      html += stat('Lavorate', Calc.fmtDuration(day.worked), day.pausa ? 'pausa ' + Calc.fmtDuration(day.pausa) : '', 'sm');
+      html += stat('Previste', day.target > 0 ? Calc.fmtDuration(day.target) : '—', '', 'sm');
+      html += stat('Straordinario', day.overtime > 0 ? '+' + Calc.fmtDuration(day.overtime) : '—', '', 'sm');
+      html += '</div>';
+      html += '<button class="btn primary block" style="margin-top:14px;min-height:52px;font-size:16px" data-action="punch-in">Timbra entrata</button>';
+      html += '<div class="row" style="margin-top:8px;gap:8px">';
+      html += '<button class="btn sm ghost" data-action="new-shift" data-date="' + oggi + '">Inserimento manuale</button>';
+      if (!day.entries.length) {
+        html += '<button class="btn sm ghost" data-action="quick-standard">Giornata standard</button>';
+      }
+      html += '</div>';
+      html += '</div></div>';
+    }
+
+    /* turni già registrati oggi */
+    if (day.entries.length) {
+      html += '<div style="margin-top:16px">' + day.entries.map(shiftRow).join('') + '</div>';
+    } else if (!p) {
+      html += '<p class="muted small" style="margin:16px 0 0">Nessun turno registrato per oggi.</p>';
+    }
+
+    html += Geo.statusHTML();
+    html += '</div>';
+    return html;
+  }
+
+  function fmtClock(sec) {
+    var h = Math.floor(sec / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = sec % 60;
+    return h + ':' + Calc.pad(m) + ':' + Calc.pad(s);
+  }
+
+  function punchDetail(p, t, uscitaMs) {
+    var parts = ['Entrata ' + Calc.timeFromMs(p.startedAt)];
+    if (t.pausa > 0) parts.push('pausa ' + Calc.fmtDuration(t.pausa));
+    if (t.inPausa) parts.push('in pausa da ' + Calc.timeFromMs(t.pausaCorrenteDa));
+    else if (uscitaMs) parts.push('uscita prevista ' + Calc.timeFromMs(uscitaMs));
+    return esc(parts.join(' · '));
+  }
+
+  /* Somma a un riepilogo le ore della timbratura ancora aperta. */
+  function conTimbratura(sum, punch, t) {
+    if (!punch || !t || punch.date < sum.from || punch.date > sum.to) return sum;
+    var s = Object.assign({}, sum);
+    s.worked += t.lavoro;
+    s.credited += t.lavoro;
+    s.creditedToDate += t.lavoro;
+    s.pct = s.target > 0 ? (s.credited / s.target) * 100 : 0;
+    s.pctToDate = s.targetToDate > 0 ? (s.creditedToDate / s.targetToDate) * 100 : 0;
+    s.saldo = s.credited - s.target;
+    s.saldoToDate = s.creditedToDate - s.targetToDate;
+    s.live = true;
+    return s;
+  }
+
   /* Anello + numeri di un periodo. Se il periodo è ancora in corso la
      percentuale principale è quella sul previsto maturato a oggi. */
   function periodDonut(sum) {
@@ -135,7 +242,8 @@
     html += '<div class="row" style="gap:8px">' + saldoBadge(saldo) +
       (sum.overtime > 0 ? '<span class="badge warn">Straord. ' + Calc.fmtDuration(sum.overtime) + '</span>' : '') + '</div>';
     if (inCorso) {
-      html += '<span class="tiny muted">' + Calc.fmtPct(sum.pct) + ' del periodo completo (' + Calc.fmtDuration(sum.target) + ')</span>';
+      html += '<span class="tiny muted">' + Calc.fmtPct(sum.pct) + ' del periodo completo (' + Calc.fmtDuration(sum.target) + ')' +
+        (sum.live ? ' · timbratura in corso inclusa' : '') + '</span>';
     }
     html += '</div></div>';
     return html;
@@ -605,12 +713,32 @@
     var giorni = [1, 2, 3, 4, 5, 6, 0];
     var html = '';
 
-    html += '<div class="card"><div class="card-title">Contratto e orario</div>';
-    html += '<div class="grid grid-2">';
-    html += '<label class="field">Ore contrattuali al giorno' +
-      '<input type="number" min="0" max="24" step="0.25" data-set="oreGiornaliere" value="' + s.oreGiornaliere + '"></label>';
+    var o = s.orario || {};
+    html += '<div class="card"><div class="card-title">Orario standard</div>';
+    html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">Sono gli orari abituali della tua giornata. ' +
+      'Da qui l\'app ricava le ore contrattuali, precompila i turni inseriti a mano e riconosce la finestra della pausa pranzo.</p>';
+    html += '<div class="grid grid-4">';
+    html += '<label class="field">Inizio<input type="time" data-set="orario.inizio" value="' + esc(o.inizio || '') + '"></label>';
+    html += '<label class="field">Pausa da<input type="time" data-set="orario.pausaInizio" value="' + esc(o.pausaInizio || '') + '"></label>';
+    html += '<label class="field">Pausa a<input type="time" data-set="orario.pausaFine" value="' + esc(o.pausaFine || '') + '"></label>';
+    html += '<label class="field">Fine<input type="time" data-set="orario.fine" value="' + esc(o.fine || '') + '"></label>';
+    html += '</div>';
+
+    html += '<div class="note" style="margin-top:12px">' +
+      'Giornata contrattuale calcolata: <strong>' + Calc.fmtDuration(Math.round(s.oreGiornaliere * 60)) + '</strong>' +
+      (s.pausaPredefinita > 0 ? ' (pausa di ' + s.pausaPredefinita + ' minuti ' + (s.pausaRetribuita ? 'retribuita' : 'non retribuita') + ')' : ' senza pausa') +
+      ' · settimana da <strong>' + Calc.fmtDuration(Math.round(s.oreGiornaliere * 60 * (s.giorniLavorativi || []).length)) + '</strong>. ' +
+      'Le percentuali di giorno, settimana e mese sono calcolate su questi valori.</div>';
+
+    html += '<div class="grid grid-2" style="margin-top:14px">';
     html += '<label class="field">Soglia straordinario (ore/giorno)' +
       '<input type="number" min="0" max="24" step="0.25" data-set="sogliaStraordinario" value="' + s.sogliaStraordinario + '"></label>';
+    html += '<label class="field">Arrotondamento timbratura (minuti)' +
+      '<select data-set="arrotondamento">' +
+      [1, 5, 10, 15, 30].map(function (m) {
+        return '<option value="' + m + '"' + (Number(s.arrotondamento) === m ? ' selected' : '') + '>' + (m === 1 ? 'Al minuto' : m + ' minuti') + '</option>';
+      }).join('') +
+      '</select></label>';
     html += '</div>';
 
     html += '<div style="margin-top:14px"><div class="field" style="margin-bottom:8px">Giorni lavorativi</div><div class="chips">';
@@ -621,8 +749,6 @@
     html += '</div><p class="tiny muted" style="margin:8px 0 0">Il monte ore previsto di settimana e mese è calcolato su questi giorni.</p></div>';
 
     html += '<div class="grid grid-2" style="margin-top:14px">';
-    html += '<label class="field">Pausa pranzo predefinita (minuti)' +
-      '<input type="number" min="0" max="480" step="5" data-set="pausaPredefinita" value="' + s.pausaPredefinita + '"></label>';
     html += '<label class="field">Monte ore mensile fisso (0 = calcolato)' +
       '<input type="number" min="0" max="400" step="1" data-set="oreMensiliFisse" value="' + s.oreMensiliFisse + '"></label>';
     html += '</div>';
@@ -639,6 +765,9 @@
       '</select></label>';
     html += '</div>';
     html += '</div>';
+
+    /* GPS */
+    html += Geo.settingsHTML();
 
     /* economia */
     html += '<div class="card" style="margin-top:14px"><div class="card-title">Straordinari e paga (opzionale)</div>';
@@ -722,8 +851,9 @@
 
     html += '<div id="ore-fields" class="' + (Calc.TIPI[tipo].conteggia === 'ore' ? '' : 'hidden') + '">';
     html += '<div class="grid grid-3">';
-    html += '<label class="field">Inizio<input type="time" name="start" value="' + esc(shift.start || '09:00') + '"></label>';
-    html += '<label class="field">Fine<input type="time" name="end" value="' + esc(shift.end || '18:00') + '"></label>';
+    var std = s.orario || {};
+    html += '<label class="field">Inizio<input type="time" name="start" value="' + esc(shift.start || std.inizio || '09:00') + '"></label>';
+    html += '<label class="field">Fine<input type="time" name="end" value="' + esc(shift.end || std.fine || '18:00') + '"></label>';
     html += '<label class="field">Pausa (min)<input type="number" name="breakMin" min="0" max="480" step="5" value="' +
       (shift.breakMin !== undefined ? shift.breakMin : s.pausaPredefinita) + '"></label>';
     html += '</div>';
@@ -741,6 +871,8 @@
 
   global.UI = {
     esc: esc,
+    fmtClock: fmtClock,
+    punchDetail: punchDetail,
     dashboard: dashboard,
     turni: turni,
     statistiche: statistiche,

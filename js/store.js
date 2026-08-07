@@ -5,9 +5,11 @@
   var KEY = 'percentage.v1';
 
   var DEFAULT_SETTINGS = {
-    oreGiornaliere: 8,            // ore contrattuali per giorno lavorativo
+    // Orario standard: è la fonte di verità del monte ore giornaliero.
+    orario: { inizio: '09:00', pausaInizio: '13:00', pausaFine: '14:00', fine: '18:00' },
+    oreGiornaliere: 8,            // ricavato da "orario", non si modifica a mano
+    pausaPredefinita: 60,         // ricavato da "orario"
     giorniLavorativi: [1, 2, 3, 4, 5], // 0 = domenica ... 6 = sabato
-    pausaPredefinita: 60,         // minuti di pausa pranzo proposti nel form
     pausaRetribuita: false,       // se true la pausa conta come ore lavorate
     sogliaStraordinario: 8,       // ore oltre le quali scatta lo straordinario nel giorno
     maggiorazione: 25,            // % di maggiorazione sulle ore di straordinario
@@ -15,6 +17,8 @@
     valuta: '€',
     oreMensiliFisse: 0,           // > 0 sostituisce il monte ore mensile calcolato
     inizioSettimana: 1,           // 1 = lunedì, 0 = domenica
+    arrotondamento: 1,            // minuti a cui arrotondare la timbratura
+    geo: null,                    // rilevamento GPS, vedi geo.js
     tema: 'dark'
   };
 
@@ -22,6 +26,7 @@
     settings: Object.assign({}, DEFAULT_SETTINGS),
     shifts: [],       // { id, date, start, end, breakMin, tipo, note }
     checkins: [],     // { id, ts, answers:{}, score, level, dims:{} }
+    punch: null,      // timbratura in corso: { date, startedAt, pauses: [{from, to}] }
     aiKey: '',        // chiave API opzionale, salvata solo in locale
     aiModel: 'claude-opus-5'
   };
@@ -32,14 +37,57 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
+  /* Minuti fra due orari 'HH:MM' (gestisce il passaggio di mezzanotte). */
+  function diffMin(a, b) {
+    function p(t) {
+      var x = String(t || '').split(':');
+      return (parseInt(x[0], 10) || 0) * 60 + (parseInt(x[1], 10) || 0);
+    }
+    var d = p(b) - p(a);
+    if (d < 0) d += 24 * 60;
+    return d;
+  }
+
+  /* L'orario standard determina ore giornaliere e pausa predefinita. */
+  function derive(settings) {
+    var o = settings.orario || DEFAULT_SETTINGS.orario;
+    var pausa = (o.pausaInizio && o.pausaFine) ? diffMin(o.pausaInizio, o.pausaFine) : 0;
+    var presenza = diffMin(o.inizio, o.fine);
+    settings.pausaPredefinita = pausa;
+    settings.oreGiornaliere = Math.max(0, (presenza - (settings.pausaRetribuita ? 0 : pausa))) / 60;
+    return settings;
+  }
+
   function load() {
     try {
       var raw = global.localStorage.getItem(KEY);
       if (!raw) return;
       var data = JSON.parse(raw);
-      if (data.settings) state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
+      if (data.settings) {
+        state.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings);
+        // Archivi creati prima dell'orario standard: lo ricostruisco dalle ore già impostate.
+        if (!data.settings.orario) {
+          var ore = parseFloat(data.settings.oreGiornaliere);
+          if (!isNaN(ore) && ore > 0) {
+            var pausa = parseInt(data.settings.pausaPredefinita, 10) || 0;
+            var fine = 9 * 60 + Math.round(ore * 60) + pausa;
+            var hhmm = function (m) {
+              m = ((Math.round(m) % 1440) + 1440) % 1440;
+              return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+            };
+            state.settings.orario = {
+              inizio: '09:00',
+              pausaInizio: pausa > 0 ? '13:00' : '',
+              pausaFine: pausa > 0 ? hhmm(13 * 60 + pausa) : '',
+              fine: hhmm(fine)
+            };
+          }
+        }
+        derive(state.settings);
+      }
       if (Array.isArray(data.shifts)) state.shifts = data.shifts;
       if (Array.isArray(data.checkins)) state.checkins = data.checkins;
+      if (data.punch && data.punch.startedAt) state.punch = data.punch;
       if (typeof data.aiKey === 'string') state.aiKey = data.aiKey;
       if (typeof data.aiModel === 'string') state.aiModel = data.aiModel;
     } catch (err) {
@@ -74,7 +122,72 @@
     settings: function () { return state.settings; },
 
     updateSettings: function (patch) {
+      var prima = state.settings.oreGiornaliere;
       state.settings = Object.assign({}, state.settings, patch);
+      derive(state.settings);
+      // La soglia straordinario segue le ore contrattuali finché non viene toccata a mano.
+      if (!('sogliaStraordinario' in patch) && Math.abs(state.settings.sogliaStraordinario - prima) < 0.01) {
+        state.settings.sogliaStraordinario = state.settings.oreGiornaliere;
+      }
+      commit();
+    },
+
+    /* --- timbratura --- */
+    punch: function () { return state.punch; },
+
+    startPunch: function (atMs) {
+      if (state.punch) return state.punch;
+      var now = atMs || Date.now();
+      state.punch = {
+        date: Calc.toISO(new Date(now)),
+        startedAt: now,
+        pauses: []
+      };
+      commit();
+      return state.punch;
+    },
+
+    /* Apre o chiude la pausa in corso. */
+    toggleBreak: function (atMs) {
+      if (!state.punch) return null;
+      var now = atMs || Date.now();
+      var pauses = state.punch.pauses;
+      var last = pauses[pauses.length - 1];
+      if (last && !last.to) last.to = now;
+      else pauses.push({ from: now, to: null });
+      commit();
+      return state.punch;
+    },
+
+    /* Chiude la timbratura e la trasforma in un turno. */
+    stopPunch: function (atMs, note) {
+      if (!state.punch) return null;
+      var now = atMs || Date.now();
+      var p = state.punch;
+      p.pauses.forEach(function (b) { if (!b.to) b.to = now; });
+
+      var round = Math.max(1, parseInt(state.settings.arrotondamento, 10) || 1);
+      var roundMs = round * 60000;
+      var startR = Math.round(p.startedAt / roundMs) * roundMs;
+      var endR = Math.round(now / roundMs) * roundMs;
+      var pausaMin = p.pauses.reduce(function (acc, b) { return acc + (b.to - b.from); }, 0) / 60000;
+
+      var shift = Store.saveShift({
+        date: p.date,
+        start: Calc.timeFromMs(startR),
+        end: Calc.timeFromMs(endR),
+        breakMin: Math.round(pausaMin / round) * round,
+        tipo: 'lavoro',
+        note: note || ''
+      });
+
+      state.punch = null;
+      commit();
+      return shift;
+    },
+
+    cancelPunch: function () {
+      state.punch = null;
       commit();
     },
 

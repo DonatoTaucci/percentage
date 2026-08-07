@@ -1,6 +1,6 @@
 /* sw.js — cache offline. Strategia: network-first per l'HTML,
    cache-first per gli asset statici. */
-var CACHE = 'percentage-v1';
+var CACHE = 'percentage-v2';
 var ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ var ASSETS = [
   './js/calc.js',
   './js/charts.js',
   './js/coach.js',
+  './js/geo.js',
   './js/ai.js',
   './js/ui.js',
   './js/app.js',

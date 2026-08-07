@@ -11,8 +11,34 @@ offline. Nessun account, nessun server: **i dati restano nel browser del disposi
 
 ## Cosa fa
 
+**Timbratura**
+- Funziona come un badge: un tocco su *Timbra entrata* avvia il cronometro, *Vai in pausa* la sospende,
+  *Timbra uscita* chiude la giornata e la salva come turno.
+- Durante il turno vedi ore lavorate in tempo reale, percentuale sul previsto e **ora di uscita stimata**
+  per completare la giornata contrattuale.
+- La timbratura sopravvive alla chiusura dell'app: se dimentichi di uscire la ritrovi aperta, con un avviso.
+- Arrotondamento configurabile (al minuto, 5, 10, 15 o 30 minuti).
+- In alternativa restano l'inserimento manuale e il tasto *Giornata standard*, che registra la giornata tipo in un tocco.
+
+**Timbratura automatica con GPS** (opzionale)
+- Salvi la posizione del posto di lavoro e un raggio: entrando nel raggio la timbratura parte da sola,
+  uscendo si chiude, e ogni evento genera una notifica.
+- Un'uscita dentro la **finestra della pausa pranzo** (ricavata dall'orario standard, con 75 minuti di
+  tolleranza sui due lati) viene registrata come pausa e si chiude al rientro, invece di terminare il turno.
+- Protezioni contro i falsi positivi: margine di isteresi in uscita, tempo di conferma configurabile
+  (90 secondi di default) e letture GPS troppo imprecise scartate.
+- Ogni automatismo può essere disattivato singolarmente (entrata, uscita, pausa, notifiche) e resta
+  sempre correggibile a mano.
+
+> **Limite tecnico, dichiarato apertamente.** Una web app riceve la posizione solo mentre è aperta.
+> Su Android il rilevamento prosegue con l'app in secondo piano finché il sistema non sospende la scheda;
+> su iPhone Safari sospende la geolocalizzazione appena esci dall'app. In pratica: tieni Percentage aperta
+> durante gli spostamenti di inizio e fine turno, oppure aprila all'arrivo e alla partenza — bastano pochi
+> secondi perché la timbratura si allinei. Un geofencing sempre attivo a app chiusa richiede un'app nativa.
+> Il GPS richiede una connessione https e consuma batteria: conviene disattivarlo nei giorni liberi.
+
 **Turni e ore**
-- Inserimento di turni con orario di inizio, fine e pausa pranzo; i turni a cavallo di mezzanotte
+- Inserimento manuale di turni con orario di inizio, fine e pausa pranzo; i turni a cavallo di mezzanotte
   sono gestiti automaticamente.
 - Tipi di giornata: lavoro, ferie, permesso, malattia, festività, riposo. Le assenze retribuite
   contano come ore previste coperte (e coprono solo la parte di giornata non lavorata).
@@ -76,18 +102,22 @@ In **Impostazioni** si definiscono:
 
 | Voce | Effetto |
 |---|---|
-| Ore contrattuali al giorno | Base del monte ore previsto di settimana e mese |
+| **Orario standard** (inizio, pausa da/a, fine) | È la fonte di verità: da qui l'app ricava le ore contrattuali giornaliere, precompila i turni manuali e riconosce la finestra della pausa pranzo per il GPS. Es. 9:00–18:00 con pausa 13:00–14:00 → giornata da 8 h |
 | Giorni lavorativi | Quali giorni concorrono al previsto; lavorare fuori da questi conta tutto come straordinario |
-| Soglia straordinario | Ore giornaliere oltre le quali scatta lo straordinario |
-| Pausa predefinita / pausa retribuita | Valore proposto nel form e se la pausa conta come lavorata |
+| Soglia straordinario | Ore giornaliere oltre le quali scatta lo straordinario (segue le ore contrattuali finché non la modifichi) |
+| Arrotondamento timbratura | Al minuto oppure a 5/10/15/30 minuti |
+| Pausa retribuita | Se attiva, la pausa conta come tempo lavorato |
 | Monte ore mensile fisso | Sostituisce il calcolo automatico quando il contratto prevede un monte ore mensile |
 | Paga oraria e maggiorazione | Attivano la stima economica degli straordinari (indicativa) |
+| Posizione, raggio e conferma (GPS) | Parametri della timbratura automatica |
 
 ---
 
 ## Dati e privacy
 
 - Tutto è salvato in `localStorage`: niente account, niente sincronizzazione, niente server.
+- Le coordinate del posto di lavoro restano sul dispositivo: non vengono inviate da nessuna parte,
+  e il confronto con la posizione attuale avviene interamente nel browser.
 - **Esporta un backup ogni tanto** (JSON) dalla sezione Impostazioni: cancellare i dati del browser
   cancella anche l'archivio. È disponibile anche l'esportazione CSV dei turni, utile come traccia
   degli straordinari.
@@ -106,12 +136,14 @@ js/store.js             persistenza locale, import/export
 js/calc.js              date, durate, percentuali, straordinari
 js/charts.js            grafici SVG inline (nessuna libreria)
 js/coach.js             questionario, indice di rischio, consigli
+js/geo.js               timbratura automatica GPS e notifiche
 js/ai.js                integrazione opzionale con l'API di Claude
 js/ui.js                rendering delle viste
 js/app.js               avvio, routing, eventi
 sw.js                   cache offline
 manifest.webmanifest    installazione come app
 tests/calcoli.test.js   test dei calcoli e del motore benessere
+tests/timbratura.test.js test della timbratura e della logica GPS
 ```
 
 Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
@@ -122,7 +154,12 @@ Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
 python3 -m http.server 8765 &
 npx playwright install chromium     # solo la prima volta
 node tests/calcoli.test.js
+node tests/timbratura.test.js
 ```
 
-Verifica durate dei turni (inclusi quelli notturni), straordinari, assenze, percentuali di periodo,
-monte ore fisso, navigazione fra i mesi e le soglie del motore di rischio.
+`calcoli.test.js` verifica durate dei turni (inclusi quelli notturni), straordinari, assenze,
+percentuali di periodo, monte ore fisso, navigazione fra i mesi e le soglie del motore di rischio.
+
+`timbratura.test.js` verifica il ciclo entrata/pausa/uscita, l'arrotondamento, le ore contrattuali
+derivate dall'orario standard e la macchina a stati del geofence: arrivo, uscita a pranzo, rientro,
+uscita finale, isteresi, letture imprecise, tempo di conferma e automatismi disattivati.

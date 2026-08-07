@@ -165,6 +165,47 @@
     return b < a || a >= 21 * 60 || a < 6 * 60 || b > 22 * 60;
   }
 
+  /* ---------- timbratura ---------- */
+
+  function timeFromMs(ms) {
+    var d = new Date(ms);
+    return pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  /** Stato calcolato di una timbratura in corso (o appena chiusa). */
+  function punchTotals(punch, nowMs) {
+    if (!punch) return null;
+    var now = nowMs || Date.now();
+    var pauses = punch.pauses || [];
+    var last = pauses[pauses.length - 1];
+    var inPausa = !!(last && !last.to);
+
+    var pausaMs = pauses.reduce(function (acc, b) {
+      return acc + ((b.to || now) - b.from);
+    }, 0);
+    var totMs = Math.max(0, now - punch.startedAt);
+    var lavoroMs = Math.max(0, totMs - pausaMs);
+
+    return {
+      inPausa: inPausa,
+      pausaCorrenteDa: inPausa ? last.from : null,
+      startedAt: punch.startedAt,
+      presenza: Math.floor(totMs / 60000),
+      pausa: Math.floor(pausaMs / 60000),
+      lavoro: Math.floor(lavoroMs / 60000),
+      lavoroSec: Math.floor(lavoroMs / 1000),
+      giorniFa: Math.floor((now - punch.startedAt) / 86400000)
+    };
+  }
+
+  /** Ora di uscita per completare le ore previste, dati start e pause. */
+  function expectedEnd(punch, settings, targetMin, nowMs) {
+    var t = punchTotals(punch, nowMs);
+    if (!t) return null;
+    var pausaPrevista = settings.pausaRetribuita ? 0 : Math.max(t.pausa, settings.pausaPredefinita || 0);
+    return punch.startedAt + (targetMin + pausaPrevista) * 60000;
+  }
+
   /* ---------- target ---------- */
 
   function dailyTargetMinutes(iso, settings) {
@@ -347,6 +388,7 @@
     addMonths: addMonths, daysBetween: daysBetween, isoWeekNumber: isoWeekNumber,
     fmtDate: fmtDate, fmtMonth: fmtMonth, fmtDuration: fmtDuration, fmtHours: fmtHours,
     fmtPct: fmtPct, fmtMoney: fmtMoney, parseTime: parseTime,
+    timeFromMs: timeFromMs, punchTotals: punchTotals, expectedEnd: expectedEnd,
     shiftMinutes: shiftMinutes, shiftSpanMinutes: shiftSpanMinutes, isNightShift: isNightShift,
     dailyTargetMinutes: dailyTargetMinutes, daySummary: daySummary, rangeSummary: rangeSummary,
     maxStreak: maxStreak, currentStreak: currentStreak, monthTargetMinutes: monthTargetMinutes,

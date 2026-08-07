@@ -174,6 +174,54 @@ main { padding-top: 18px; }
 .pct-hero .donut { flex: none; }
 .pct-hero-info { min-width: 190px; flex: 1; }
 
+/* ---------- timbratura ---------- */
+.punch-live {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.punch-clock-wrap { flex: 1 1 220px; min-width: 200px; }
+.punch-clock {
+  font-size: clamp(38px, 11vw, 54px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+  line-height: 1.05;
+  margin: 8px 0 4px;
+}
+.punch-side { flex: 1 1 240px; min-width: 220px; }
+.punch-side .btn { flex: 1; }
+
+.dot-live {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .dot-live { animation: none; } }
+
+.geo-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--txt-dim);
+}
+.geo-status .geo-dot {
+  width: 8px; height: 8px; flex: none;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
+}
+.geo-status.warn .geo-dot { background: var(--warn); box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent); }
+.geo-status.bad { color: var(--bad); }
+.geo-status.bad .geo-dot { background: var(--bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 22%, transparent); }
+
 .bar {
   height: 9px;
   border-radius: 99px;
