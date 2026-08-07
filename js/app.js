@@ -378,6 +378,40 @@
         render();
         break;
 
+      /* --- account e sincronizzazione --- */
+      case 'cloud-login': {
+        var dlg = document.getElementById('clerk-modal');
+        global.Cloud.apriAccesso();
+        if (typeof dlg.showModal === 'function') dlg.showModal();
+        break;
+      }
+
+      case 'close-clerk': {
+        var dlg2 = document.getElementById('clerk-modal');
+        if (typeof dlg2.close === 'function') dlg2.close();
+        break;
+      }
+
+      case 'cloud-sync':
+        toast('Sincronizzo…');
+        global.Cloud.sincronizza().then(function (res) {
+          if (!res) return;
+          toast(res.errore
+            ? 'Sincronizzazione non riuscita: ' + res.errore
+            : 'Sincronizzato: ' + res.inviati + ' inviati, ' + res.ricevuti + ' ricevuti.', 3500);
+          render();
+        });
+        break;
+
+      case 'cloud-logout':
+        if (global.confirm('Uscire dall\'account? I dati restano sul server e li ritrovi al prossimo accesso; da questo computer verranno rimossi.')) {
+          global.Cloud.esci().then(function () {
+            toast('Uscito dall\'account.');
+            render();
+          });
+        }
+        break;
+
       /* --- impostazioni --- */
       case 'toggle-day': {
         var g = parseInt(el.dataset.day, 10);
@@ -581,6 +615,17 @@
 
     setInterval(tickPunch, 1000);
     Geo.sync();
+
+    // Il modulo cloud si carica dopo (è un modulo ES): quando cambia stato,
+    // la vista si aggiorna da sola.
+    var attesaCloud = setInterval(function () {
+      if (!global.Cloud) return;
+      clearInterval(attesaCloud);
+      global.Cloud.onChange(function () {
+        if (ctx.view === 'impostazioni') render();
+      });
+    }, 300);
+    setTimeout(function () { clearInterval(attesaCloud); }, 15000);
 
     // Rientrando nell'app: ridisegno (la data può essere cambiata) e riattivo il GPS.
     document.addEventListener('visibilitychange', function () {

@@ -22,14 +22,34 @@
     tema: 'dark'
   };
 
+  // Coda di sincronizzazione: che cosa è cambiato in locale e non è ancora sul server.
+  var EMPTY_SYNC = {
+    lastPulledAt: null,
+    dirtyShifts: [],
+    dirtyCheckins: [],
+    dirtySettings: false,
+    dirtyPunch: false,
+    deletedShifts: [],
+    deletedCheckins: []
+  };
+
   var state = {
     settings: Object.assign({}, DEFAULT_SETTINGS),
     shifts: [],       // { id, date, start, end, breakMin, tipo, note }
     checkins: [],     // { id, ts, answers:{}, score, level, dims:{} }
     punch: null,      // timbratura in corso: { date, startedAt, pauses: [{from, to}] }
+    sync: Object.assign({}, EMPTY_SYNC),
     aiKey: '',        // chiave API opzionale, salvata solo in locale
     aiModel: 'claude-opus-5'
   };
+
+  function uniq(a) {
+    return a.filter(function (v, i) { return a.indexOf(v) === i; });
+  }
+
+  function markSync(patch) {
+    state.sync = Object.assign({}, state.sync, patch);
+  }
 
   var listeners = [];
 
@@ -88,6 +108,7 @@
       if (Array.isArray(data.shifts)) state.shifts = data.shifts;
       if (Array.isArray(data.checkins)) state.checkins = data.checkins;
       if (data.punch && data.punch.startedAt) state.punch = data.punch;
+      if (data.sync) state.sync = Object.assign({}, EMPTY_SYNC, data.sync);
       if (typeof data.aiKey === 'string') state.aiKey = data.aiKey;
       if (typeof data.aiModel === 'string') state.aiModel = data.aiModel;
     } catch (err) {
@@ -129,6 +150,7 @@
       if (!('sogliaStraordinario' in patch) && Math.abs(state.settings.sogliaStraordinario - prima) < 0.01) {
         state.settings.sogliaStraordinario = state.settings.oreGiornaliere;
       }
+      markSync({ dirtySettings: true });
       commit();
     },
 
@@ -143,6 +165,7 @@
         startedAt: now,
         pauses: []
       };
+      markSync({ dirtyPunch: true });
       commit();
       return state.punch;
     },
@@ -155,6 +178,7 @@
       var last = pauses[pauses.length - 1];
       if (last && !last.to) last.to = now;
       else pauses.push({ from: now, to: null });
+      markSync({ dirtyPunch: true });
       commit();
       return state.punch;
     },
@@ -182,12 +206,14 @@
       });
 
       state.punch = null;
+      markSync({ dirtyPunch: true });
       commit();
       return shift;
     },
 
     cancelPunch: function () {
       state.punch = null;
+      markSync({ dirtyPunch: true });
       commit();
     },
 
@@ -224,12 +250,17 @@
         if (a.date === b.date) return (a.start || '').localeCompare(b.start || '');
         return a.date < b.date ? -1 : 1;
       });
+      markSync({ dirtyShifts: uniq(state.sync.dirtyShifts.concat([clean.id])) });
       commit();
       return clean;
     },
 
     deleteShift: function (id) {
       state.shifts = state.shifts.filter(function (s) { return s.id !== id; });
+      markSync({
+        deletedShifts: uniq(state.sync.deletedShifts.concat([id])),
+        dirtyShifts: state.sync.dirtyShifts.filter(function (x) { return x !== id; })
+      });
       commit();
     },
 
@@ -246,12 +277,17 @@
       entry.ts = Date.now();
       state.checkins.push(entry);
       if (state.checkins.length > 200) state.checkins = state.checkins.slice(-200);
+      markSync({ dirtyCheckins: uniq(state.sync.dirtyCheckins.concat([entry.id])) });
       commit();
       return entry;
     },
 
     deleteCheckin: function (id) {
       state.checkins = state.checkins.filter(function (c) { return c.id !== id; });
+      markSync({
+        deletedCheckins: uniq(state.sync.deletedCheckins.concat([id])),
+        dirtyCheckins: state.sync.dirtyCheckins.filter(function (x) { return x !== id; })
+      });
       commit();
     },
 
@@ -259,6 +295,63 @@
     setAi: function (key, model) {
       state.aiKey = key || '';
       if (model) state.aiModel = model;
+      commit();
+    },
+
+    /* --- sincronizzazione --- */
+
+    syncState: function () { return state.sync; },
+
+    /* Applica i turni arrivati dal server. Le modifiche locali non ancora
+       inviate hanno la precedenza: verranno spinte al prossimo giro. */
+    mergeShifts: function (righe, dirty) {
+      var mappa = {};
+      state.shifts.forEach(function (s) { mappa[s.id] = s; });
+      var n = 0;
+      righe.forEach(function (r) {
+        if (dirty.indexOf(r.turno.id) >= 0) return;
+        if (r.riga.deleted_at) delete mappa[r.turno.id];
+        else mappa[r.turno.id] = r.turno;
+        n++;
+      });
+      state.shifts = Object.keys(mappa).map(function (k) { return mappa[k]; }).sort(function (a, b) {
+        if (a.date === b.date) return (a.start || '').localeCompare(b.start || '');
+        return a.date < b.date ? -1 : 1;
+      });
+      commit();
+      return n;
+    },
+
+    mergeCheckins: function (righe, dirty) {
+      var mappa = {};
+      state.checkins.forEach(function (c) { mappa[c.id] = c; });
+      var n = 0;
+      righe.forEach(function (r) {
+        if (dirty.indexOf(r.checkin.id) >= 0) return;
+        if (r.riga.deleted_at) delete mappa[r.checkin.id];
+        else mappa[r.checkin.id] = r.checkin;
+        n++;
+      });
+      state.checkins = Object.keys(mappa).map(function (k) { return mappa[k]; })
+        .sort(function (a, b) { return a.ts - b.ts; });
+      commit();
+      return n;
+    },
+
+    applyRemoteSettings: function (remote) {
+      if (!remote) return;
+      state.settings = derive(Object.assign({}, DEFAULT_SETTINGS, remote));
+      commit();
+    },
+
+    applyRemotePunch: function (punch) {
+      state.punch = punch && punch.startedAt ? punch : null;
+      commit();
+    },
+
+    /* Tutto inviato e ricevuto: la coda riparte pulita. */
+    syncDone: function (isoServer) {
+      state.sync = Object.assign({}, EMPTY_SYNC, { lastPulledAt: isoServer });
       commit();
     },
 

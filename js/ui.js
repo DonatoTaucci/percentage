@@ -705,6 +705,59 @@
     return html;
   }
 
+  /* Account e sincronizzazione: gli stessi dati sul telefono e sul computer. */
+  function accountCard() {
+    var cloud = global.Cloud;
+    var html = '<div class="card"><div class="card-title">Account</div>';
+
+    if (!cloud || !cloud.configurato()) {
+      html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">' +
+        'La sincronizzazione con l\'app per telefono non è ancora configurata: manca la chiave di Clerk in <code>js/config.js</code>. ' +
+        'Finché non c\'è, il sito funziona normalmente ma i dati restano solo su questo computer.</p>';
+      html += '</div>';
+      return html;
+    }
+
+    var st = cloud.stato();
+
+    if (st.errore && !st.utente) {
+      html += '<div class="note" style="margin-bottom:12px">' + esc(st.errore) + '</div>';
+    }
+
+    if (!st.utente) {
+      html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">' +
+        'Accedi con la tua email per ritrovare gli stessi turni sull\'app del telefono. ' +
+        'Senza accesso il sito continua a funzionare, ma solo in locale.</p>';
+      html += '<button class="btn primary sm" data-action="cloud-login"' + (st.pronto ? '' : ' disabled') + '>' +
+        (st.pronto ? 'Accedi' : 'Caricamento…') + '</button>';
+    } else {
+      var pendenti = Store.syncState();
+      var daInviare = pendenti.dirtyShifts.length + pendenti.dirtyCheckins.length +
+        pendenti.deletedShifts.length + pendenti.deletedCheckins.length +
+        (pendenti.dirtySettings ? 1 : 0) + (pendenti.dirtyPunch ? 1 : 0);
+
+      html += '<div class="row-between">';
+      html += '<div><strong>' + esc(st.utente.email || 'Accesso effettuato') + '</strong>' +
+        '<p class="tiny muted" style="margin:4px 0 0">' +
+        (st.ultimaSync
+          ? 'Ultima sincronizzazione ' + new Date(st.ultimaSync).toLocaleString('it-IT')
+          : 'Non ancora sincronizzato') +
+        (daInviare > 0 ? ' · ' + daInviare + ' modifiche da inviare' : '') +
+        '</p></div>';
+      html += '<button class="btn sm" data-action="cloud-sync"' + (st.sincronizzando ? ' disabled' : '') + '>' +
+        (st.sincronizzando ? 'Sincronizzo…' : 'Sincronizza') + '</button>';
+      html += '</div>';
+
+      if (st.errore) html += '<div class="note" style="margin-top:12px;border-color:var(--bad)">' + esc(st.errore) + '</div>';
+
+      html += '<p class="tiny muted" style="margin:12px 0 0">Gli stessi dati sono nell\'app per telefono, accedendo con questa email.</p>';
+      html += '<button class="btn sm danger" style="margin-top:12px" data-action="cloud-logout">Esci dall\'account</button>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
   /* =========================================================
      IMPOSTAZIONI
      ========================================================= */
@@ -712,6 +765,8 @@
     var s = Store.settings();
     var giorni = [1, 2, 3, 4, 5, 6, 0];
     var html = '';
+
+    html += accountCard();
 
     var o = s.orario || {};
     html += '<div class="card"><div class="card-title">Orario standard</div>';

@@ -1,11 +1,20 @@
 # Percentage
 
-Web app per registrare i turni di lavoro e le pause, calcolare la **percentuale di ore lavorate**
-su giorno, settimana e mese tenendo conto degli **straordinari**, e monitorare il rischio di
-**burnout, stress e ansia da lavoro** con una sezione dedicata.
+Timbra entrata e uscita, calcola la **percentuale di ore lavorate** su giorno, settimana e mese
+tenendo conto degli **straordinari**, e monitora il rischio di **burnout, stress e ansia da lavoro**.
 
-Funziona su PC, Android e iPhone dallo stesso indirizzo: è una PWA installabile che gira anche
-offline. Nessun account, nessun server: **i dati restano nel browser del dispositivo**.
+Il progetto è composto da tre parti che condividono lo stesso account e gli stessi dati:
+
+| | | |
+|---|---|---|
+| **`mobile/`** | App nativa Expo (React Native) | Android e iPhone, pubblicabile su Play Store e App Store. Ha il **geofencing di sistema**: timbra da sola anche ad app chiusa |
+| **radice del repo** | Sito web / PWA | Da PC, senza installare nulla |
+| **Supabase + Clerk** | Server condiviso | Stesso account su telefono e computer: i turni sono gli stessi |
+
+Entrambi i client sono **local-first**: funzionano offline e sincronizzano appena c'è rete.
+Senza account restano perfettamente utilizzabili, solo senza condivisione fra dispositivi.
+
+👉 **Prima configurazione: [SETUP.md](SETUP.md)** (server già pronto, manca la chiave Clerk).
 
 ---
 
@@ -30,12 +39,15 @@ offline. Nessun account, nessun server: **i dati restano nel browser del disposi
 - Ogni automatismo può essere disattivato singolarmente (entrata, uscita, pausa, notifiche) e resta
   sempre correggibile a mano.
 
-> **Limite tecnico, dichiarato apertamente.** Una web app riceve la posizione solo mentre è aperta.
-> Su Android il rilevamento prosegue con l'app in secondo piano finché il sistema non sospende la scheda;
-> su iPhone Safari sospende la geolocalizzazione appena esci dall'app. In pratica: tieni Percentage aperta
-> durante gli spostamenti di inizio e fine turno, oppure aprila all'arrivo e alla partenza — bastano pochi
-> secondi perché la timbratura si allinei. Un geofencing sempre attivo a app chiusa richiede un'app nativa.
-> Il GPS richiede una connessione https e consuma batteria: conviene disattivarlo nei giorni liberi.
+**Differenza fra app e sito, sul GPS:**
+
+- **App nativa**: il geofencing lo fa il sistema operativo. iOS e Android sorvegliano l'area e
+  risvegliano l'app quando entri o esci, **anche se l'app è chiusa**. Non serve tenerla aperta e
+  non c'è un GPS sempre acceso a consumare batteria. Richiede il permesso *"Consenti sempre"*.
+- **Sito**: un browser riceve la posizione solo mentre la pagina è aperta. Su Android il
+  rilevamento prosegue in secondo piano finché il sistema non sospende la scheda; su iPhone
+  Safari lo interrompe appena esci. Sul sito il GPS resta quindi un aiuto, non un automatismo:
+  per la timbratura automatica vera conviene l'app.
 
 **Turni e ore**
 - Inserimento manuale di turni con orario di inizio, fine e pausa pranzo; i turni a cavallo di mezzanotte
@@ -115,7 +127,12 @@ In **Impostazioni** si definiscono:
 
 ## Dati e privacy
 
-- Tutto è salvato in `localStorage`: niente account, niente sincronizzazione, niente server.
+- Senza account nulla esce dal dispositivo: `localStorage` sul sito, archivio locale nell'app.
+- Con l'account, turni, check-in e impostazioni vengono sincronizzati sul progetto Supabase.
+  Ogni riga è filtrata per utente (Row Level Security): la chiave pubblica da sola non legge nulla,
+  serve un token valido di Clerk.
+- Uscendo dall'account i dati locali del dispositivo vengono rimossi; quelli sul server restano
+  e si ritrovano al prossimo accesso.
 - Le coordinate del posto di lavoro restano sul dispositivo: non vengono inviate da nessuna parte,
   e il confronto con la posizione attuale avviene interamente nel browser.
 - **Esporta un backup ogni tanto** (JSON) dalla sezione Impostazioni: cancellare i dati del browser
@@ -130,7 +147,15 @@ In **Impostazioni** si definiscono:
 ## Struttura
 
 ```
-index.html              markup e navigazione
+mobile/                 app nativa Expo (React Native + TypeScript)
+  app/                  schermate: accesso, Oggi, Turni, Statistiche, Benessere, Impostazioni
+  src/core/             logica pura: calcoli, timbratura, decisioni GPS, motore benessere
+  src/data/             persistenza locale e sincronizzazione con il server
+  src/services/         geofencing di sistema e notifiche
+  src/ui/               tema, componenti e grafici SVG
+  tests/core.test.ts    45 test della logica, eseguibili senza emulatore
+
+index.html              sito: markup e navigazione
 css/style.css           stile, tema scuro e chiaro
 js/store.js             persistenza locale, import/export
 js/calc.js              date, durate, percentuali, straordinari
@@ -138,6 +163,8 @@ js/charts.js            grafici SVG inline (nessuna libreria)
 js/coach.js             questionario, indice di rischio, consigli
 js/geo.js               timbratura automatica GPS e notifiche
 js/ai.js                integrazione opzionale con l'API di Claude
+js/config.js            chiavi pubbliche (Clerk, Supabase)
+js/cloud.js             accesso Clerk e sincronizzazione (modulo ES separato)
 js/ui.js                rendering delle viste
 js/app.js               avvio, routing, eventi
 sw.js                   cache offline
@@ -151,10 +178,15 @@ Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
 ## Test
 
 ```bash
+# sito (42 test in un browser headless)
 python3 -m http.server 8765 &
 npx playwright install chromium     # solo la prima volta
 node tests/calcoli.test.js
 node tests/timbratura.test.js
+
+# app (45 test della logica pura, senza emulatore)
+cd mobile && npm test
+npm run typecheck
 ```
 
 `calcoli.test.js` verifica durate dei turni (inclusi quelli notturni), straordinari, assenze,
@@ -163,3 +195,7 @@ percentuali di periodo, monte ore fisso, navigazione fra i mesi e le soglie del 
 `timbratura.test.js` verifica il ciclo entrata/pausa/uscita, l'arrotondamento, le ore contrattuali
 derivate dall'orario standard e la macchina a stati del geofence: arrivo, uscita a pranzo, rientro,
 uscita finale, isteresi, letture imprecise, tempo di conferma e automatismi disattivati.
+
+`mobile/tests/core.test.ts` copre gli stessi calcoli sull'app più le decisioni prese dal task di
+geofencing quando il sistema la sveglia: arrivo, uscita a pranzo, rientro, uscita finale e i casi
+con gli automatismi disattivati.

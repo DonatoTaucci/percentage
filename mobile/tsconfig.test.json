@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "/tmp/percentage-core-tests",
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src/core/**/*.ts",
+    "tests/core.test.ts"
+  ]
+}

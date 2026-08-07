@@ -1,3 +1,14 @@
 node_modules/
 .DS_Store
 *.log
+
+# Expo
+mobile/.expo/
+mobile/dist/
+mobile/android/
+mobile/ios/
+mobile/expo-env.d.ts
+
+# chiavi locali (il modello versionato è mobile/.env.example)
+.env
+mobile/.env

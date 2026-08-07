@@ -1,0 +1,79 @@
+{
+  "expo": {
+    "name": "Percentage",
+    "slug": "percentage",
+    "version": "1.0.0",
+    "scheme": "percentage",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "primaryColor": "#4a9eff",
+    "description": "Timbra entrata e uscita, calcola la percentuale di ore lavorate su giorno, settimana e mese, tiene conto degli straordinari e aiuta a prevenire stress e burnout.",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.donatotaucci.percentage",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.donatotaucci.percentage",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "backgroundColor": "#4a9eff",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Percentage usa la posizione per riconoscere quando arrivi e quando lasci il posto di lavoro.",
+          "locationAlwaysAndWhenInUsePermission": "Con il permesso \"Sempre\" Percentage può timbrare entrata e uscita da sola anche quando l'app è chiusa. La posizione resta sul tuo dispositivo e non viene condivisa.",
+          "locationAlwaysPermission": "Con il permesso \"Sempre\" Percentage può timbrare entrata e uscita da sola anche quando l'app è chiusa.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#4a9eff",
+          "defaultChannel": "timbrature"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0e1116",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
