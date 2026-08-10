@@ -177,22 +177,26 @@ function riassuntoUtente(u) {
    Montare il componente dentro un <dialog> nostro sembrava più integrato, ma
    costringeva a inseguire con il CSS una card che ha misure proprie.
 
-   Due opzioni tengono l'utente dentro il sito, ed entrambe servono:
+   withSignUp mette accesso e iscrizione nello stesso componente. Senza,
+   chi entra con Google per la prima volta non ha ancora un account: Clerk
+   "trasferisce" il tentativo al flusso di iscrizione, che in mancanza di
+   una pagina nostra è quello ospitato su <dominio>.accounts.dev. È così
+   che ci si ritrova sul portale di Clerk a metà registrazione. È questa
+   opzione a risolvere il problema, ed è sufficiente da sola.
 
-   - withSignUp mette accesso e iscrizione nello stesso componente. Senza,
-     chi entra con Google per la prima volta non ha ancora un account: Clerk
-     "trasferisce" il tentativo al flusso di iscrizione, che in mancanza di
-     una pagina nostra è quello ospitato su <dominio>.accounts.dev. È così
-     che ci si ritrova sul portale di Clerk a metà registrazione.
-
-   - oauthFlow 'popup' apre Google in una finestra a parte invece di
-     portarci via e riportarci indietro. Il permesso di aprirla c'è perché
-     parte da un clic dell'utente. */
+   oauthFlow resta 'redirect'. Avevo provato 'popup' per non lasciare mai
+   la pagina, ma il popup va aperto sul clic — prima di sapere dove
+   mandarlo — e l'indirizzo gli viene assegnato solo dopo la risposta del
+   server. Quando fra il clic e la risposta si mette in mezzo la verifica
+   antibot di Cloudflare, la finestra resta su about:blank: uno schermo
+   bianco al posto della scelta dell'account Google. Con il reindirizzamento
+   la pagina va su Google e torna indietro — un passaggio in più, ma
+   deterministico, ed è comunque il funzionamento normale di OAuth. */
 async function apriAccesso() {
   if (!stato.clerk) return;
   stato.clerk.openSignIn({
     withSignUp: true,
-    oauthFlow: 'popup',
+    oauthFlow: 'redirect',
     forceRedirectUrl: window.location.href,
     signUpForceRedirectUrl: window.location.href
   });
@@ -207,7 +211,7 @@ async function apriAccesso() {
 async function apriRegistrazione() {
   if (!stato.clerk) return;
   stato.clerk.openSignUp({
-    oauthFlow: 'popup',
+    oauthFlow: 'redirect',
     signInForceRedirectUrl: window.location.href,
     forceRedirectUrl: window.location.href
   });
