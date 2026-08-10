@@ -248,7 +248,7 @@ const ESCAPE = { n: '\n', t: '\t', r: '\r', "'": "'", '"': '"', '\\': '\\' };
 const deEscape = (t) => t.replace(/\\(.)/g, (intero, c) => (c in ESCAPE ? ESCAPE[c] : intero));
 
 const daSorgente = new Set();
-for (const f of ['js/app.js', 'js/ui.js', 'js/geo.js', 'js/cloud.js']) {
+for (const f of ['js/app.js', 'js/ui.js', 'js/geo.js', 'js/cloud.js', 'js/admin.js']) {
   const codice = readFileSync(resolve(radice, f), 'utf8');
   for (const re of [/\btoast\(\s*'((?:[^'\\]|\\.)*)'/g, /\bT\(\s*'((?:[^'\\]|\\.)*)'/g, /confirm\(\s*'((?:[^'\\]|\\.)*)'/g]) {
     let m;

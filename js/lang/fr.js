@@ -375,3 +375,9 @@ Object.assign(window.I18N.fr, {
   "Utente": "Utilisateur",
   "Utenti": "Utilisateurs"
 });
+
+/* Diagnosi dell'accesso di amministrazione. */
+Object.assign(window.I18N.fr, {
+  "Il server riceve {email}, che non è fra gli amministratori. L'elenco si modifica nella tabella \"admins\" dal pannello Supabase.": "Le serveur reçoit {email}, qui ne figure pas parmi les administrateurs. La liste se modifie dans la table \"admins\" depuis le tableau de bord Supabase.",
+  "Il token di accesso non contiene l'email, quindi il server non può riconoscere nessun amministratore. Su Clerk, in Sessions → Customize session token, aggiungi il claim \"email\", poi esci e rientra.": "Le jeton d'accès ne contient pas l'adresse e-mail : le serveur ne peut donc reconnaître aucun administrateur. Dans Clerk, sous Sessions → Customize session token, ajoute le claim \"email\", puis déconnecte-toi et reconnecte-toi."
+});

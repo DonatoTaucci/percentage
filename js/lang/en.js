@@ -378,3 +378,9 @@ Object.assign(window.I18N.en, {
   "Utente": "User",
   "Utenti": "Users"
 });
+
+/* Diagnosi dell'accesso di amministrazione. */
+Object.assign(window.I18N.en, {
+  "Il server riceve {email}, che non è fra gli amministratori. L'elenco si modifica nella tabella \"admins\" dal pannello Supabase.": "The server receives {email}, which is not on the administrator list. The list is edited in the \"admins\" table from the Supabase dashboard.",
+  "Il token di accesso non contiene l'email, quindi il server non può riconoscere nessun amministratore. Su Clerk, in Sessions → Customize session token, aggiungi il claim \"email\", poi esci e rientra.": "The access token does not carry the email address, so the server cannot recognise any administrator. In Clerk, under Sessions → Customize session token, add the \"email\" claim, then sign out and back in."
+});

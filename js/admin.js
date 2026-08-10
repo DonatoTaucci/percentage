@@ -21,8 +21,25 @@
     verificato: false,   // la domanda è già stata posta al server?
     admin: false,
     motivo: null,        // 'ok' | 'non-admin' | 'senza-email' | 'errore'
-    errore: null
+    errore: null,
+    emailNelToken: null  // l'email che il server riceve davvero, se c'è
   };
+
+  /* Legge i claim dal token, senza verificarne la firma: qui non si sta
+     autorizzando nulla — quello lo fa il database — si sta solo guardando
+     cosa il server riceve, per poterlo dire all'utente. */
+  function claimsDelToken() {
+    var c = global.Cloud && global.Cloud.stato();
+    var sessione = c && c.clerk && c.clerk.session;
+    if (!sessione) return Promise.resolve(null);
+    return sessione.getToken().then(function (jwt) {
+      if (!jwt) return null;
+      var parte = String(jwt).split('.')[1];
+      if (!parte) return null;
+      var json = atob(parte.replace(/-/g, '+').replace(/_/g, '/'));
+      return JSON.parse(decodeURIComponent(escape(json)));
+    }).catch(function () { return null; });
+  }
 
   function sb() {
     var c = global.Cloud && global.Cloud.stato();
@@ -42,7 +59,9 @@
       stato.motivo = 'non-admin';
       return Promise.resolve(false);
     }
-    return s.rpc('is_admin').then(function (r) {
+    return Promise.all([s.rpc('is_admin'), claimsDelToken()]).then(function (out) {
+      var r = out[0];
+      stato.emailNelToken = (out[1] && out[1].email) || null;
       stato.verificato = true;
       if (r.error) {
         stato.admin = false;
@@ -51,7 +70,7 @@
         return false;
       }
       stato.admin = r.data === true;
-      stato.motivo = stato.admin ? 'ok' : 'non-admin';
+      stato.motivo = stato.admin ? 'ok' : (stato.emailNelToken ? 'non-admin' : 'senza-email');
       return stato.admin;
     }).catch(function (err) {
       stato.verificato = true;
@@ -67,12 +86,16 @@
      l'esito del server: conosciuta di qua, negata di là. */
   function diagnosi() {
     var utente = global.Cloud && global.Cloud.stato().utente;
-    if (!utente) return 'Serve l\'accesso.';
+    if (!utente) return T('Serve l\'accesso.');
     if (stato.motivo === 'errore') return stato.errore;
     if (stato.admin) return null;
-    return 'Questo account non è fra gli amministratori. Se dovrebbe esserlo, ' +
-      'controlla che il token di Clerk includa il claim "email": senza, il server non ' +
-      'può riconoscerlo.';
+    if (!stato.emailNelToken) {
+      // Distinzione che vale il tempo di scriverla: senza email nel token
+      // nessuno può risultare amministratore, e la soluzione è in un pannello,
+      // non nel riprovare.
+      return T('Il token di accesso non contiene l\'email, quindi il server non può riconoscere nessun amministratore. Su Clerk, in Sessions → Customize session token, aggiungi il claim "email", poi esci e rientra.');
+    }
+    return T('Il server riceve {email}, che non è fra gli amministratori. L\'elenco si modifica nella tabella "admins" dal pannello Supabase.', { email: stato.emailNelToken });
   }
 
   function utenti() {
