@@ -705,6 +705,18 @@
     return html;
   }
 
+  /* Riassunto in una riga dello stato della sincronizzazione. */
+  function statoCloud() {
+    var cfg = global.CONFIG || {};
+    if (!cfg.CLERK_PUBLISHABLE_KEY) return 'chiave Clerk assente';
+    if (!global.Cloud) return 'modulo cloud.js non caricato';
+    var st = global.Cloud.stato();
+    if (st.utente) return 'accesso effettuato';
+    if (!st.pronto) return 'accesso in caricamento';
+    if (st.motivo === 'irraggiungibile') return 'librerie non raggiungibili';
+    return 'pronto per l\'accesso';
+  }
+
   /* Righe di stato da leggere quando l'accesso non parte. Servono a capire
      in quale dei passaggi ci si è fermati senza aprire la console. */
   function diagnostica(st) {
@@ -913,8 +925,11 @@
       '<button type="button" class="chip' + (s.tema === 'light' ? ' on' : '') + '" data-action="theme" data-theme="light">Chiaro</button>' +
       '</div></div>';
     html += '<p class="tiny muted" style="margin:14px 0 0">Percentage è una web app installabile: su Android usa "Aggiungi a schermata Home" dal menu del browser, su iPhone il pulsante Condividi → "Aggiungi a Home". Una volta installata funziona anche offline.</p>';
-    html += '<p class="tiny muted" style="margin:8px 0 0">Versione servita: ' +
-      (ctx.swVersione ? '<code>' + esc(ctx.swVersione) + '</code>' : 'nessun service worker attivo') + '</p>';
+    // Riga tecnica: tutto quello che serve a capire un problema di
+    // configurazione o di cache, in un posto solo e senza console.
+    html += '<p class="tiny muted" style="margin:8px 0 0">Stato tecnico · versione servita: ' +
+      (ctx.swVersione ? '<code>' + esc(ctx.swVersione) + '</code>' : 'nessun service worker attivo') +
+      ' · ' + statoCloud() + '</p>';
     html += '</div>';
 
     return html;

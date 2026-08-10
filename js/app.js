@@ -655,12 +655,6 @@
         console.warn('Service worker non registrato:', err);
       });
 
-      // Quando una versione nuova prende il controllo, la pagina sta ancora
-      // usando i file vecchi: la ricarico una volta sola, così l'aggiornamento
-      // si vede subito invece che alla visita successiva.
-      // Solo se un service worker c'era già: alla primissima visita
-      // "controllerchange" segnala l'installazione, non un aggiornamento,
-      // e i file in pagina sono comunque quelli giusti.
       // Chiedo al service worker quale versione sta servendo, così la scheda
       // "App" può dirlo senza aprire gli strumenti da sviluppatore.
       navigator.serviceWorker.addEventListener('message', function (e) {
@@ -673,11 +667,21 @@
         if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('versione');
       };
       chiediVersione();
+      // "ready" garantisce un service worker attivo, ma non che controlli già
+      // questa pagina: alla prima visita il controllo arriva dopo, con
+      // clients.claim(), e senza richiederla di nuovo la scheda App direbbe
+      // "nessun service worker attivo" mentre invece ce n'è uno.
       navigator.serviceWorker.ready.then(chiediVersione);
 
       var avevaControllo = !!navigator.serviceWorker.controller;
       var giaRicaricato = false;
       navigator.serviceWorker.addEventListener('controllerchange', function () {
+        chiediVersione();
+        // Quando una versione nuova prende il controllo, la pagina sta ancora
+        // usando i file vecchi: la ricarico una volta sola, così l'aggiornamento
+        // si vede subito invece che alla visita successiva. Solo se un service
+        // worker c'era già: alla primissima visita "controllerchange" segnala
+        // l'installazione, e i file in pagina sono comunque quelli giusti.
         if (!avevaControllo || giaRicaricato) return;
         giaRicaricato = true;
         location.reload();
