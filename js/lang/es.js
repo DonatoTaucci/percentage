@@ -385,3 +385,6 @@ Object.assign(window.I18N.es, {
   "Il server riceve {email}, che non è fra gli amministratori. L'elenco si modifica nella tabella \"admins\" dal pannello Supabase.": "El servidor recibe {email}, que no está en la lista de administradores. La lista se edita en la tabla \"admins\" desde el panel de Supabase.",
   "Il token di accesso non contiene l'email, quindi il server non può riconoscere nessun amministratore. Su Clerk, in Sessions → Customize session token, aggiungi il claim \"email\", poi esci e rientra.": "El token de acceso no incluye el correo, así que el servidor no puede reconocer a ningún administrador. En Clerk, en Sessions → Customize session token, añade el claim \"email\" y luego cierra sesión y vuelve a entrar."
 });
+
+/* Registro explícito. */
+Object.assign(window.I18N.es, { "Registrati": "Regístrate" });

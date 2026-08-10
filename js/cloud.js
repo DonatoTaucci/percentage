@@ -13,12 +13,25 @@ const LOCALIZZAZIONI = 'https://esm.sh/@clerk/localizations@3';
 /* Clerk ha le proprie traduzioni ufficiali; il titolo lo scriviamo noi perché
    quello predefinito nomina l'applicazione così com'è registrata su Clerk. */
 const PACCHETTI = { it: 'itIT', en: 'enUS', es: 'esES', fr: 'frFR', de: 'deDE' };
+/* Due titoli, non uno. In modalità "accedi o registrati" Clerk usa
+   titleCombined al posto di title: sovrascrivendo solo il secondo restava
+   in vista il nome dell'applicazione come registrata su Clerk. */
 const TITOLI = {
-  it: { titolo: 'Accedi a Percentage', sotto: 'Bentornato: accedi per continuare.' },
-  en: { titolo: 'Sign in to Percentage', sotto: 'Welcome back — sign in to continue.' },
-  es: { titolo: 'Entra en Percentage', sotto: 'Bienvenido de nuevo: inicia sesión para continuar.' },
-  fr: { titolo: 'Connexion à Percentage', sotto: 'Bon retour : connecte-toi pour continuer.' },
-  de: { titolo: 'Bei Percentage anmelden', sotto: 'Willkommen zurück — melde dich an, um fortzufahren.' }
+  it: { titolo: 'Accedi a Percentage', sotto: 'Bentornato: accedi per continuare.',
+        insieme: 'Accedi o registrati', sottoInsieme: 'Se non hai un account, viene creato al primo accesso.',
+        registra: 'Crea il tuo account', sottoRegistra: 'Bastano pochi secondi.' },
+  en: { titolo: 'Sign in to Percentage', sotto: 'Welcome back — sign in to continue.',
+        insieme: 'Sign in or sign up', sottoInsieme: 'No account yet? One is created on your first sign-in.',
+        registra: 'Create your account', sottoRegistra: 'It only takes a few seconds.' },
+  es: { titolo: 'Entra en Percentage', sotto: 'Bienvenido de nuevo: inicia sesión para continuar.',
+        insieme: 'Entra o regístrate', sottoInsieme: 'Si no tienes cuenta, se crea al primer acceso.',
+        registra: 'Crea tu cuenta', sottoRegistra: 'Solo lleva unos segundos.' },
+  fr: { titolo: 'Connexion à Percentage', sotto: 'Bon retour : connecte-toi pour continuer.',
+        insieme: 'Se connecter ou s\'inscrire', sottoInsieme: 'Pas encore de compte ? Il est créé à la première connexion.',
+        registra: 'Crée ton compte', sottoRegistra: 'Cela prend quelques secondes.' },
+  de: { titolo: 'Bei Percentage anmelden', sotto: 'Willkommen zurück — melde dich an, um fortzufahren.',
+        insieme: 'Anmelden oder registrieren', sottoInsieme: 'Noch kein Konto? Es wird bei der ersten Anmeldung angelegt.',
+        registra: 'Konto erstellen', sottoRegistra: 'Das dauert nur ein paar Sekunden.' }
 };
 
 async function localizzazione(lingua) {
@@ -30,9 +43,24 @@ async function localizzazione(lingua) {
   } catch (err) {
     // Senza il pacchetto Clerk resta in inglese: è un peggioramento, non un guasto.
   }
+  const signIn = base.signIn || {};
+  const signUp = base.signUp || {};
   return {
     ...base,
-    signIn: { ...(base.signIn || {}), start: { ...((base.signIn || {}).start || {}), title: t.titolo, subtitle: t.sotto } }
+    signIn: {
+      ...signIn,
+      start: {
+        ...(signIn.start || {}),
+        title: t.titolo,
+        subtitle: t.sotto,
+        titleCombined: t.insieme,
+        subtitleCombined: t.sottoInsieme
+      }
+    },
+    signUp: {
+      ...signUp,
+      start: { ...(signUp.start || {}), title: t.registra, subtitle: t.sottoRegistra }
+    }
   };
 }
 
@@ -167,6 +195,21 @@ async function apriAccesso() {
     oauthFlow: 'popup',
     forceRedirectUrl: window.location.href,
     signUpForceRedirectUrl: window.location.href
+  });
+}
+
+/* Ingresso esplicito alla registrazione.
+
+   Con withSignUp la finestra di accesso crea l'account da sola quando
+   l'indirizzo non esiste, ma non lo dice: chi arriva per la prima volta
+   vede solo "Continua" e non ha modo di sapere che è anche il pulsante per
+   iscriversi. Un secondo percorso, dichiarato, toglie il dubbio. */
+async function apriRegistrazione() {
+  if (!stato.clerk) return;
+  stato.clerk.openSignUp({
+    oauthFlow: 'popup',
+    signInForceRedirectUrl: window.location.href,
+    forceRedirectUrl: window.location.href
   });
 }
 
@@ -311,6 +354,7 @@ window.Cloud = {
   connesso: () => !!stato.utente,
   onChange: fn => ascoltatori.push(fn),
   apriAccesso,
+  apriRegistrazione,
   riprova,
   esci,
   sincronizza

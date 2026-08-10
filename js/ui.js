@@ -63,8 +63,14 @@
     if (stato.errore) {
       html += '<button class="btn primary" data-action="entra">' + esc(T('Riprova ad accedere')) + '</button>';
     } else {
+      // Due percorsi dichiarati. La finestra di Clerk crea l'account da sola
+      // quando l'indirizzo non esiste, ma non lo dice: chi arriva la prima
+      // volta vedrebbe solo "Entra" e non saprebbe da dove iscriversi.
       html += '<button class="btn primary" data-action="entra"' + (stato.pronto ? '' : ' disabled') + '>' +
         esc(stato.pronto ? T('Entra') : T('Caricamento…')) + '</button>';
+      if (stato.pronto) {
+        html += '<button class="btn" data-action="registrati">' + esc(T('Registrati')) + '</button>';
+      }
     }
     if (stato.giaAccesso) {
       html += '<button class="btn" data-action="entra-offline">' + esc(T('Continua senza connessione')) + '</button>';

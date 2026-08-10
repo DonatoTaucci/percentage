@@ -532,6 +532,10 @@
         apriAccesso();
         break;
 
+      case 'registrati':
+        apriAccesso(true);
+        break;
+
       case 'entra-offline':
         ctx.offlineForzato = true;
         renderGate();
@@ -785,8 +789,11 @@
   /* Se le librerie non sono mai arrivate, il primo clic è un nuovo tentativo:
      aprire la finestra senza Clerk caricato darebbe un riquadro vuoto, che è
      il modo peggiore di dire "non ha funzionato". */
-  function apriAccesso() {
-    var apri = function () { global.Cloud.apriAccesso(); };
+  function apriAccesso(registrazione) {
+    var apri = function () {
+      if (registrazione) global.Cloud.apriRegistrazione();
+      else global.Cloud.apriAccesso();
+    };
     if (global.Cloud.stato().disponibile) { apri(); return; }
     renderGate();
     global.Cloud.riprova().then(function (st) {
