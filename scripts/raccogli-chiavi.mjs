@@ -64,47 +64,109 @@ await page.evaluate(() => {
   };
 });
 
-/* 1. La landing, che si vede prima dell'accesso. */
-await page.waitForFunction(() => window.Cloud && window.Cloud.stato().pronto, { timeout: 25000 });
-await page.waitForTimeout(400);
-await page.evaluate(() => window.__raccogli(document.getElementById('landing')));
+/* Le schermate si visitano tutte, e in tutti i loro stati.
 
-/* 2. L'applicazione, con dati d'esempio che accendono ogni ramo del codice. */
-await page.evaluate(() => {
-  const app = document.getElementById('app');
-  app.classList.remove('hidden');
-  document.getElementById('landing').classList.add('hidden');
+   La prima versione di questo script raccoglieva solo ciò che capitava di
+   vedere: con dati d'esempio caricati, gli stati vuoti ("Nessun turno
+   registrato in…") non comparivano mai, e la finestra di accesso non
+   riusciva a caricarsi in questo ambiente, quindi il pulsante "Entra" non
+   esisteva. Le frasi mancanti restavano in italiano senza che nulla lo
+   segnalasse. Ora ogni stato viene provocato di proposito. */
 
-  const oggi = window.Calc.today();
-  const giorno = (n) => window.Calc.toISO(new Date(Date.now() - n * 86400000));
-
-  window.Store.updateSettings({ geo: { attivo: true, lat: 45.1, lng: 9.1, raggio: 150, etichetta: 'Ufficio' } });
-  window.Store.saveShift({ date: oggi, start: '09:00', end: '18:30', breakMin: 60, tipo: 'lavoro', note: 'consegna' });
-  window.Store.saveShift({ date: giorno(1), start: '09:00', end: '18:00', breakMin: 60, tipo: 'lavoro' });
-  window.Store.saveShift({ date: giorno(2), start: '22:00', end: '06:00', breakMin: 30, tipo: 'lavoro' });
-  window.Store.saveShift({ date: giorno(3), tipo: 'ferie' });
-  window.Store.saveShift({ date: giorno(4), tipo: 'malattia' });
-  window.Store.saveShift({ date: giorno(5), tipo: 'permesso' });
-  window.Store.saveShift({ date: giorno(6), tipo: 'festivo' });
-});
-
-for (const vista of ['dashboard', 'turni', 'statistiche', 'benessere', 'impostazioni']) {
-  await page.evaluate((v) => window.App.go(v), vista);
-  await page.waitForTimeout(250);
+const raccogliVisibile = async () => {
   await page.evaluate(() => {
     window.__raccogli(document.getElementById('main'));
     window.__raccogli(document.querySelector('.topbar'));
     window.__raccogli(document.querySelector('.tabs'));
     window.__raccogli(document.querySelector('.foot'));
   });
+};
+
+const vaiA = async (vista) => {
+  await page.evaluate((v) => {
+    document.getElementById('app').classList.remove('hidden');
+    document.getElementById('landing').classList.add('hidden');
+    window.App.go(v);
+  }, vista);
+  await page.waitForTimeout(160);
+  await raccogliVisibile();
+};
+
+/* 1. La landing, in tutti e quattro i suoi stati. */
+await page.waitForFunction(() => window.Cloud && window.Cloud.stato().pronto, { timeout: 25000 });
+for (const stato of [
+  { pronto: true },
+  { pronto: false },
+  { pronto: true, errore: 'Servizio di accesso non raggiungibile: l\'app resta utilizzabile in locale.' },
+  { pronto: true, errore: 'Servizio di accesso non raggiungibile: l\'app resta utilizzabile in locale.', giaAccesso: true },
+]) {
+  await page.evaluate((s) => {
+    const l = document.getElementById('landing');
+    l.classList.remove('hidden');
+    l.innerHTML = window.UI.landing(s);
+    window.__raccogli(l);
+  }, stato);
 }
 
-/* 3. Il questionario del benessere, che è dietro un pulsante. */
-await page.evaluate(() => { window.App.ctx.quizOpen = true; window.App.render(); });
-await page.waitForTimeout(250);
-await page.evaluate(() => window.__raccogli(document.getElementById('main')));
+/* 2. L'applicazione completamente vuota: è ciò che vede chi entra la prima
+      volta, ed è pieno di frasi che nessun altro stato mostra. */
+await page.evaluate(() => {
+  window.Store.shifts().slice().forEach((t) => window.Store.deleteShift(t.id));
+  window.Store.cancelPunch();
+  window.Store.updateSettings({ geo: { attivo: false, lat: null, lng: null, raggio: 150, etichetta: '' }, aiKey: '' });
+});
+for (const v of ['dashboard', 'turni', 'statistiche', 'benessere', 'impostazioni']) await vaiA(v);
 
-/* 4. Una timbratura in corso e una in pausa. */
+/* 2b. Un mese e un anno senza dati, raggiunti navigando indietro. */
+await page.evaluate(() => {
+  window.App.ctx.turniMonth = '2019-03-01';
+  window.App.ctx.statsYear = 2019;
+});
+for (const v of ['turni', 'statistiche']) await vaiA(v);
+
+/* 3. Con i dati: ogni tipo di giornata, uno straordinario, un turno notturno. */
+await page.evaluate(() => {
+  const oggi = window.Calc.today();
+  const giorno = (n) => window.Calc.toISO(new Date(Date.now() - n * 86400000));
+  window.App.ctx.turniMonth = oggi;
+  window.App.ctx.statsYear = window.Calc.fromISO(oggi).getFullYear();
+  window.Store.updateSettings({
+    geo: { attivo: true, lat: 45.1, lng: 9.1, raggio: 150, etichetta: 'Ufficio' },
+    pagaOraria: 15, maggiorazioneStraordinario: 25,
+  });
+  window.Store.saveShift({ date: oggi, start: '09:00', end: '18:30', breakMin: 60, tipo: 'lavoro', note: 'consegna' });
+  for (let n = 1; n <= 20; n++) {
+    window.Store.saveShift({ date: giorno(n), start: '08:30', end: n % 5 === 0 ? '21:00' : '18:00', breakMin: n % 4 === 0 ? 0 : 60, tipo: 'lavoro' });
+  }
+  window.Store.saveShift({ date: giorno(22), start: '22:00', end: '06:00', breakMin: 30, tipo: 'lavoro' });
+  ['ferie', 'malattia', 'permesso', 'festivo', 'riposo'].forEach((tipo, i) => {
+    window.Store.saveShift({ date: giorno(24 + i), tipo });
+  });
+});
+for (const v of ['dashboard', 'turni', 'statistiche', 'benessere', 'impostazioni']) await vaiA(v);
+
+/* 4. Il questionario: aperto, e poi compilato in tre modi diversi, perché
+      il profilo di rischio e i consigli cambiano con le risposte. */
+await page.evaluate(() => { window.App.ctx.quizOpen = true; window.App.render(); });
+await page.waitForTimeout(160);
+await raccogliVisibile();
+
+for (const modo of ['peggiore', 'medio', 'migliore']) {
+  await page.evaluate((m) => {
+    const risposte = {};
+    window.Coach.QUESTIONS.forEach((q) => {
+      risposte[q.id] = m === 'medio' ? 2 : (m === 'peggiore' ? (q.invert ? 0 : 4) : (q.invert ? 4 : 0));
+    });
+    const val = window.Coach.evaluate(risposte, window.Store.shifts(), window.Store.settings());
+    window.Store.addCheckin({ id: 'test-' + m, ts: Date.now(), answers: risposte, score: val.score, level: val.level.id, dims: val.dims });
+    window.App.ctx.quizOpen = false;
+    window.App.go('benessere');
+  }, modo);
+  await page.waitForTimeout(200);
+  await raccogliVisibile();
+}
+
+/* 5. Timbratura aperta e in pausa. */
 for (const stato of ['aperta', 'pausa']) {
   await page.evaluate((s) => {
     window.Store.cancelPunch();
@@ -112,19 +174,59 @@ for (const stato of ['aperta', 'pausa']) {
     if (s === 'pausa') window.Store.toggleBreak(Date.now() - 600 * 1000);
     window.App.go('dashboard');
   }, stato);
-  await page.waitForTimeout(250);
-  await page.evaluate(() => window.__raccogli(document.getElementById('main')));
+  await page.waitForTimeout(200);
+  await raccogliVisibile();
 }
 await page.evaluate(() => window.Store.cancelPunch());
 
-/* 5. Il modale del turno, nuovo e in modifica. */
+/* 6. Il GPS: spento, acceso senza posizione, acceso con posizione. */
+for (const geo of [
+  { attivo: true, lat: null, lng: null, raggio: 150, etichetta: '' },
+  { attivo: true, lat: 45.1, lng: 9.1, raggio: 150, etichetta: 'Ufficio', autoEntrata: false, autoUscita: false },
+]) {
+  await page.evaluate((g) => window.Store.updateSettings({ geo: g }), geo);
+  await vaiA('dashboard');
+  await vaiA('impostazioni');
+}
+
+/* 7. L'assistente: senza chiave, con chiave, con una conversazione in corso. */
+await page.evaluate(() => {
+  window.Store.updateSettings({ aiKey: 'sk-ant-finta' });
+  window.App.ctx.chat = [{ role: 'user', content: 'ciao' }, { role: 'assistant', content: 'ciao a te' }];
+});
+for (const v of ['benessere', 'impostazioni']) await vaiA(v);
+await page.evaluate(() => { window.App.ctx.aiBusy = true; window.App.render(); });
+await page.waitForTimeout(160);
+await raccogliVisibile();
+await page.evaluate(() => { window.App.ctx.aiBusy = false; window.Store.updateSettings({ aiKey: '' }); });
+
+/* 8. Il modale del turno, nuovo e per ogni tipo di giornata. */
 await page.evaluate(() => {
   const b = document.getElementById('modal-body');
   b.innerHTML = window.UI.shiftForm(null);
   window.__raccogli(b);
-  b.innerHTML = window.UI.shiftForm(window.Store.shifts()[0]);
-  window.__raccogli(b);
+  ['lavoro', 'ferie', 'malattia', 'permesso', 'festivo', 'riposo'].forEach((tipo) => {
+    b.innerHTML = window.UI.shiftForm({ id: 'x', date: window.Calc.today(), tipo, start: '09:00', end: '18:00', breakMin: 60 });
+    window.__raccogli(b);
+  });
 });
+
+/* 9. I messaggi che non passano dal DOM: avvisi, conferme e le frasi già
+      avvolte in T() nel sorgente. Si leggono dal codice, non dalla pagina. */
+const ESCAPE = { n: '\n', t: '\t', r: '\r', "'": "'", '"': '"', '\\': '\\' };
+const deEscape = (t) => t.replace(/\\(.)/g, (intero, c) => (c in ESCAPE ? ESCAPE[c] : intero));
+
+const daSorgente = new Set();
+for (const f of ['js/app.js', 'js/ui.js', 'js/geo.js', 'js/cloud.js']) {
+  const codice = readFileSync(resolve(radice, f), 'utf8');
+  for (const re of [/\btoast\(\s*'((?:[^'\\]|\\.)*)'/g, /\bT\(\s*'((?:[^'\\]|\\.)*)'/g, /confirm\(\s*'((?:[^'\\]|\\.)*)'/g]) {
+    let m;
+    // Le sequenze di escape vanno risolte: a runtime la stringa contiene un
+    // a capo vero, non i due caratteri barra-n, e una chiave che li conserva
+    // non combacerebbe mai.
+    while ((m = re.exec(codice)) !== null) daSorgente.add(deEscape(m[1]));
+  }
+}
 
 /* Non tutto ciò che è testo va tradotto. */
 const ESCLUDI = [
@@ -138,7 +240,7 @@ const ESCLUDI = [
   /^Percentage$/,                        // il nome del prodotto non si traduce
 ];
 
-const chiavi = await page.evaluate(() => [...window.__chiavi]);
+const chiavi = [...new Set([...(await page.evaluate(() => [...window.__chiavi])), ...daSorgente])];
 await browser.close();
 server.kill();
 
@@ -172,16 +274,24 @@ const elenco = chiavi
 
 const precedenti = existsSync(USCITA) ? JSON.parse(readFileSync(USCITA, 'utf8')) : [];
 const nuove = elenco.filter((k) => !precedenti.includes(k));
-const sparite = precedenti.filter((k) => !elenco.includes(k));
+const nonViste = precedenti.filter((k) => !elenco.includes(k));
+
+/* L'elenco cresce, non si accorcia da solo. Se una passata non raggiunge uno
+   stato — un ramo dei consigli, un mese senza dati — la sua frase non va
+   persa insieme alla traduzione: sarebbe una regressione silenziosa, proprio
+   quella che ha lasciato mezza applicazione in italiano. Per togliere davvero
+   una chiave si usa --pota, che riscrive l'elenco con la sola passata. */
+const pota = process.argv.includes('--pota');
+const finale = pota ? elenco : [...new Set([...precedenti, ...elenco])].sort((a, b) => a.localeCompare(b, 'it'));
 
 if (process.argv.includes('--verifica')) {
   if (nuove.length) console.error(`${nuove.length} chiavi nuove non ancora in _chiavi.json:\n  ` + nuove.join('\n  '));
-  if (sparite.length) console.error(`${sparite.length} chiavi non più usate:\n  ` + sparite.join('\n  '));
-  if (!nuove.length && !sparite.length) console.log(`${elenco.length} chiavi, nessuna novità.`);
-  process.exit(nuove.length || sparite.length ? 1 : 0);
+  if (nonViste.length) console.error(`${nonViste.length} chiavi non incontrate in questa passata:\n  ` + nonViste.join('\n  '));
+  if (!nuove.length) console.log(`${elenco.length} chiavi, nessuna novità.`);
+  process.exit(nuove.length ? 1 : 0);
 }
 
-writeFileSync(USCITA, JSON.stringify(elenco, null, 2) + '\n');
-console.log(`${elenco.length} chiavi scritte in js/lang/_chiavi.json`);
+writeFileSync(USCITA, JSON.stringify(finale, null, 2) + '\n');
+console.log(`${finale.length} chiavi in js/lang/_chiavi.json (${elenco.length} viste in questa passata)`);
 if (nuove.length) console.log(`  ${nuove.length} nuove`);
-if (sparite.length) console.log(`  ${sparite.length} non più usate`);
+if (nonViste.length) console.log(`  ${nonViste.length} non incontrate${pota ? ', rimosse' : ', conservate (usa --pota per toglierle)'}`);

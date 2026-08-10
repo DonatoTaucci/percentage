@@ -238,7 +238,7 @@
       /* --- timbratura --- */
       case 'punch-in':
         Store.startPunch();
-        toast('Entrata registrata alle ' + Calc.timeFromMs(Date.now()) + '.');
+        toast(T('Entrata registrata alle {ora}.', { ora: Calc.timeFromMs(Date.now()) }));
         render();
         break;
 
@@ -254,7 +254,7 @@
         var turno = Store.stopPunch();
         if (turno) {
           var min = Calc.shiftMinutes(turno, Store.settings());
-          toast('Uscita registrata: ' + Calc.fmtDuration(min) + ' (' + turno.start + '–' + turno.end + ').', 4000);
+          toast(T('Uscita registrata: {durata} ({inizio}–{fine}).', { durata: Calc.fmtDuration(min), inizio: turno.start, fine: turno.end }), 4000);
         }
         render();
         break;
@@ -286,7 +286,7 @@
         toast('Rilevo la posizione…');
         Geo.posizioneCorrente().then(function (pos) {
           Geo.set({ lat: pos.lat, lng: pos.lng });
-          toast('Posizione salvata (precisione ' + Geo.fmtDist(pos.acc) + ').', 3500);
+          toast(T('Posizione salvata (precisione {p}).', { p: Geo.fmtDist(pos.acc) }), 3500);
           Geo.sync();
           render();
         }).catch(function (err) {
@@ -325,8 +325,10 @@
         Geo.posizioneCorrente().then(function (pos) {
           var c = Geo.cfg();
           var d = Geo.distanza(pos.lat, pos.lng, c.lat, c.lng);
-          toast('Sei a ' + Geo.fmtDist(d) + ' dal punto salvato (raggio ' + c.raggio + ' m): ' +
-            (d <= c.raggio ? 'dentro' : 'fuori') + '.', 5000);
+          toast(T(d <= c.raggio
+            ? 'Sei a {d} dal punto salvato (raggio {r} m): dentro.'
+            : 'Sei a {d} dal punto salvato (raggio {r} m): fuori.',
+            { d: Geo.fmtDist(d), r: c.raggio }), 5000);
         }).catch(function (err) {
           toast(err.message, 4500);
         });
@@ -338,7 +340,7 @@
 
       case 'del-shift': {
         var s = Store.getShift(el.dataset.id);
-        if (s && global.confirm('Eliminare il turno del ' + Calc.fmtDate(s.date, 'medium') + '?')) {
+        if (s && global.confirm(T('Eliminare il turno del {data}?', { data: Calc.fmtDate(s.date, 'medium') }))) {
           Store.deleteShift(el.dataset.id);
           toast('Turno eliminato.');
           render();
@@ -457,12 +459,6 @@
         apriAccesso();
         break;
 
-      case 'close-clerk': {
-        var dlg2 = document.getElementById('clerk-modal');
-        if (typeof dlg2.close === 'function') dlg2.close();
-        break;
-      }
-
       case 'cloud-sync':
         toast('Sincronizzo…');
         global.Cloud.sincronizza().then(function (res) {
@@ -577,10 +573,10 @@
         try {
           var mode = global.confirm('OK = sostituisci i dati esistenti\nAnnulla = unisci ai dati attuali') ? 'replace' : 'merge';
           var n = Store.importJSON(reader.result, mode);
-          toast('Importati: ' + n + ' turni in archivio.');
+          toast(T('Importati: {n} turni in archivio.', { n: n }));
           render();
         } catch (err) {
-          toast('File non valido: ' + err.message, 4000);
+          toast(T('File non valido: {motivo}', { motivo: err.message }), 4000);
         }
       };
       reader.readAsText(el.files[0]);
@@ -650,11 +646,7 @@
      aprire la finestra senza Clerk caricato darebbe un riquadro vuoto, che è
      il modo peggiore di dire "non ha funzionato". */
   function apriAccesso() {
-    var apri = function () {
-      var dlg = document.getElementById('clerk-modal');
-      global.Cloud.apriAccesso();
-      if (typeof dlg.showModal === 'function') dlg.showModal();
-    };
+    var apri = function () { global.Cloud.apriAccesso(); };
     if (global.Cloud.stato().disponibile) { apri(); return; }
     renderGate();
     global.Cloud.riprova().then(function (st) {
@@ -715,9 +707,6 @@
     var foot = document.querySelector('.foot span');
     if (foot) foot.textContent = T('I dati restano sul tuo dispositivo.');
 
-    var chiudi = document.querySelector('[data-action="close-clerk"]');
-    if (chiudi) chiudi.textContent = T('Chiudi');
-
     document.title = T('Percentage — Turni, ore e benessere');
   }
 
@@ -749,10 +738,14 @@
       if (!e.target || e.target.id !== 'sel-lingua' && e.target.id !== 'sel-lingua-landing') return;
       I18n.imposta(e.target.value);
     });
-    I18n.onChange(function () {
+    I18n.onChange(function (lingua) {
       riempiSelettoreLingua();
       traduciMarcatura();
       renderGate();
+      // Anche la finestra di accesso di Clerk deve parlare la lingua scelta.
+      if (global.Cloud && global.Cloud.cambiaLingua) {
+        global.Cloud.cambiaLingua(lingua).then(renderGate);
+      }
     });
 
     global.addEventListener('beforeinstallprompt', function (e) {
@@ -788,11 +781,7 @@
       if (!global.Cloud) return;
       clearInterval(attesaCloud);
       global.Cloud.onChange(function () {
-        if (global.Cloud.connesso()) {
-          segnaAccesso();
-          var dlg = document.getElementById('clerk-modal');
-          if (dlg && dlg.open && typeof dlg.close === 'function') dlg.close();
-        }
+        if (global.Cloud.connesso()) segnaAccesso();
         renderGate();
       });
       renderGate();

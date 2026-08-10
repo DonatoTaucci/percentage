@@ -118,6 +118,9 @@
 
   function maiuscola(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
 
+  /* Date nella lingua scelta: il formato lo decide il sistema, non noi. */
+  function dataLocale(ts) { return new Date(ts).toLocaleDateString(I18n.lingua()); }
+
   function saldoBadge(minutes) {
     if (Math.abs(minutes) < 1) return '<span class="badge">In pari</span>';
     if (minutes > 0) return '<span class="badge warn">+' + Calc.fmtDuration(minutes) + '</span>';
@@ -491,7 +494,8 @@
     var giorniConTurni = sum.days.filter(function (d) { return d.entries.length > 0; });
 
     if (!giorniConTurni.length) {
-      html += '<div class="empty" style="margin-top:16px"><span class="big">▤</span>Nessun turno registrato in ' + esc(Calc.fmtMonth(mese)) + '.<br>' +
+      html += '<div class="empty" style="margin-top:16px"><span class="big">▤</span>' +
+        esc(T('Nessun turno registrato in {mese}.', { mese: Calc.fmtMonth(mese) })) + '<br>' +
         '<button class="btn primary sm" style="margin-top:14px" data-action="new-shift" data-date="' + from + '">Aggiungi il primo</button></div>';
       return html;
     }
@@ -671,8 +675,13 @@
       html += '<div class="pct-hero-info">';
       html += '<span class="badge ' + evalRes.level.tone + '">' + esc(evalRes.level.label) + '</span>';
       html += '<p style="margin:10px 0 0;max-width:56ch">' + esc(evalRes.level.msg) + '</p>';
-      html += '<p class="tiny muted" style="margin:8px 0 0">0 = nessun segnale critico · 100 = tutti gli indicatori sopra soglia. ' +
-        (last ? 'Basato sul check-in del ' + new Date(last.ts).toLocaleDateString('it-IT') + ' e sui turni delle ultime 4 settimane.' : 'Basato solo sui dati dei turni: compila il check-in per una lettura più precisa.') + '</p>';
+      // Due frasi, due elementi: incollarle produrrebbe una chiave che cambia
+      // a ogni check-in, perché conterrebbe la data.
+      html += '<p class="tiny muted" style="margin:8px 0 0">' +
+        '<span>0 = nessun segnale critico · 100 = tutti gli indicatori sopra soglia.</span> ' +
+        '<span>' + (last
+          ? esc(T('Basato sul check-in del {data} e sui turni delle ultime 4 settimane.', { data: dataLocale(last.ts) }))
+          : 'Basato solo sui dati dei turni: compila il check-in per una lettura più precisa.') + '</span></p>';
       html += '</div></div>';
     }
     html += '</div>';
@@ -730,7 +739,7 @@
     if (storico.length > 1) {
       html += '<div class="card" style="margin-top:14px"><div class="card-title">Andamento dei check-in</div>';
       html += Charts.line(storico.slice(-12).map(function (c) {
-        return { label: new Date(c.ts).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }), value: c.score };
+        return { label: new Date(c.ts).toLocaleDateString(I18n.lingua(), { day: 'numeric', month: 'short' }), value: c.score };
       }), { height: 160 });
       html += '<p class="tiny muted" style="margin:10px 0 0">La linea al 100% non è un obiettivo: qui conta la direzione, verso il basso è meglio.</p>';
       html += '</div>';
@@ -896,7 +905,7 @@
       html += '<div><strong>' + esc(st.utente.email || 'Accesso effettuato') + '</strong>' +
         '<p class="tiny muted" style="margin:4px 0 0">' +
         (st.ultimaSync
-          ? 'Ultima sincronizzazione ' + new Date(st.ultimaSync).toLocaleString('it-IT')
+          ? T('Ultima sincronizzazione {quando}', { quando: new Date(st.ultimaSync).toLocaleString(I18n.lingua()) })
           : 'Non ancora sincronizzato') +
         (daInviare > 0 ? ' · ' + daInviare + ' modifiche da inviare' : '') +
         '</p></div>';

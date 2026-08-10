@@ -54,7 +54,7 @@
 
     if (last && last.dims) {
       lines.push('');
-      lines.push('ULTIMO CHECK-IN BENESSERE (' + new Date(last.ts).toLocaleDateString('it-IT') + ', 0 = nessun problema, 100 = massima criticità):');
+      lines.push('ULTIMO CHECK-IN BENESSERE (' + new Date(last.ts).toLocaleDateString(window.I18n ? window.I18n.lingua() : 'it') + ', 0 = nessun problema, 100 = massima criticità):');
       lines.push('- Punteggio complessivo: ' + last.score + ' (' + (last.level || '') + ')');
       Object.keys(Coach.DIMENSIONS).forEach(function (k) {
         if (last.dims[k] !== null && last.dims[k] !== undefined) {

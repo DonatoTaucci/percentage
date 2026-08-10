@@ -8,6 +8,33 @@
 const CFG = window.CONFIG || {};
 const CLERK_URL = 'https://esm.sh/@clerk/clerk-js@5';
 const SUPABASE_URL_LIB = 'https://esm.sh/@supabase/supabase-js@2';
+const LOCALIZZAZIONI = 'https://esm.sh/@clerk/localizations@3';
+
+/* Clerk ha le proprie traduzioni ufficiali; il titolo lo scriviamo noi perché
+   quello predefinito nomina l'applicazione così com'è registrata su Clerk. */
+const PACCHETTI = { it: 'itIT', en: 'enUS', es: 'esES', fr: 'frFR', de: 'deDE' };
+const TITOLI = {
+  it: { titolo: 'Accedi a Percentage', sotto: 'Bentornato: accedi per continuare.' },
+  en: { titolo: 'Sign in to Percentage', sotto: 'Welcome back — sign in to continue.' },
+  es: { titolo: 'Entra en Percentage', sotto: 'Bienvenido de nuevo: inicia sesión para continuar.' },
+  fr: { titolo: 'Connexion à Percentage', sotto: 'Bon retour : connecte-toi pour continuer.' },
+  de: { titolo: 'Bei Percentage anmelden', sotto: 'Willkommen zurück — melde dich an, um fortzufahren.' }
+};
+
+async function localizzazione(lingua) {
+  const t = TITOLI[lingua] || TITOLI.it;
+  let base = {};
+  try {
+    const mod = await import(/* @vite-ignore */ LOCALIZZAZIONI);
+    base = mod[PACCHETTI[lingua]] || {};
+  } catch (err) {
+    // Senza il pacchetto Clerk resta in inglese: è un peggioramento, non un guasto.
+  }
+  return {
+    ...base,
+    signIn: { ...(base.signIn || {}), start: { ...((base.signIn || {}).start || {}), title: t.titolo, subtitle: t.sotto } }
+  };
+}
 
 const stato = {
   disponibile: false,
@@ -55,8 +82,13 @@ async function init() {
       import(/* @vite-ignore */ SUPABASE_URL_LIB)
     ]), 'librerie');
 
+    const lingua = (window.I18n && window.I18n.lingua()) || 'it';
     const clerk = new Clerk(CFG.CLERK_PUBLISHABLE_KEY);
-    await conTimeout(clerk.load({ afterSignOutUrl: window.location.href }), 'clerk');
+    stato.lingua = lingua;
+    await conTimeout(clerk.load({
+      afterSignOutUrl: window.location.href,
+      localization: await localizzazione(lingua)
+    }), 'clerk');
     stato.clerk = clerk;
 
     stato.supabase = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY, {
@@ -112,12 +144,20 @@ function riassuntoUtente(u) {
 
 /* ---------------- accesso ---------------- */
 
+/* Si usa la finestra di Clerk, non un riquadro nostro.
+
+   Montare il componente dentro un <dialog> nostro sembrava più integrato, ma
+   costringeva a inseguire con il CSS una card che ha misure proprie, e
+   soprattutto il collegamento "Sign up" portava l'utente fuori dal sito, sul
+   portale ospitato da Clerk. Con routing 'virtual' iscrizione e accesso
+   restano dentro la stessa finestra, che Clerk centra da sé. */
 async function apriAccesso() {
   if (!stato.clerk) return;
-  const contenitore = document.getElementById('clerk-slot');
-  if (!contenitore) return;
-  contenitore.innerHTML = '';
-  stato.clerk.mountSignIn(contenitore, { forceRedirectUrl: window.location.href });
+  stato.clerk.openSignIn({
+    routing: 'virtual',
+    forceRedirectUrl: window.location.href,
+    signUpForceRedirectUrl: window.location.href
+  });
 }
 
 async function esci() {
@@ -242,8 +282,21 @@ async function sincronizza(silenzioso) {
 
 /* ---------------- API pubblica ---------------- */
 
+/* La lingua di Clerk si fissa al caricamento: per cambiarla serve una nuova
+   istanza. Lo facciamo solo a utente disconnesso — chi ha già una sessione
+   aperta non deve vedersela ricreare sotto i piedi per un cambio di lingua. */
+async function cambiaLingua(lingua) {
+  if (!stato.clerk || stato.utente || stato.lingua === lingua) return;
+  stato.clerk = null;
+  stato.disponibile = false;
+  stato.pronto = false;
+  notifica();
+  await init();
+}
+
 window.Cloud = {
   stato: () => stato,
+  cambiaLingua,
   configurato: () => !!CFG.CLERK_PUBLISHABLE_KEY && !!CFG.SUPABASE_URL,
   connesso: () => !!stato.utente,
   onChange: fn => ascoltatori.push(fn),
