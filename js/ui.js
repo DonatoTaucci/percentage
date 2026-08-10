@@ -705,15 +705,47 @@
     return html;
   }
 
+  /* Righe di stato da leggere quando l'accesso non parte. Servono a capire
+     in quale dei passaggi ci si è fermati senza aprire la console. */
+  function diagnostica(st) {
+    var cfg = global.CONFIG || {};
+    var righe = [
+      'chiave Clerk: ' + (cfg.CLERK_PUBLISHABLE_KEY
+        ? 'presente (' + esc(cfg.CLERK_PUBLISHABLE_KEY.slice(0, 12)) + '…)'
+        : 'assente'),
+      'server: ' + (cfg.SUPABASE_URL ? 'configurato' : 'assente')
+    ];
+    if (st) {
+      righe.push('librerie: ' + (st.disponibile ? 'caricate' : 'non caricate'));
+      if (st.motivo) righe.push('stato: ' + esc(st.motivo));
+      if (st.dettaglio) righe.push('dettaglio: ' + esc(st.dettaglio));
+    }
+    return '<p class="tiny muted" style="margin:12px 0 0">' + righe.join(' · ') + '</p>';
+  }
+
   /* Account e sincronizzazione: gli stessi dati sul telefono e sul computer. */
   function accountCard() {
     var cloud = global.Cloud;
     var html = '<div class="card"><div class="card-title">Account</div>';
 
-    if (!cloud || !cloud.configurato()) {
+    // Le tre ragioni per cui l'accesso può non essere disponibile sono diverse
+    // fra loro e si risolvono in modi diversi: vanno distinte, non riassunte
+    // in un unico "non è configurato" che manda a cercare nel posto sbagliato.
+    if (!cloud) {
+      html += '<div class="note" style="margin-bottom:12px">Il modulo di sincronizzazione non è stato caricato.</div>';
+      html += '<p class="small muted" style="margin:0;max-width:64ch">' +
+        'Manca <code>js/cloud.js</code>, oppure il browser ne ha in memoria una versione vecchia. ' +
+        'Ricarica tenendo premuto <kbd>Ctrl</kbd> (su Mac <kbd>Cmd</kbd>) mentre premi il pulsante di ricarica. ' +
+        'Nel frattempo il sito funziona, ma i dati restano solo su questo dispositivo.</p>';
+      html += '</div>';
+      return html;
+    }
+
+    if (!cloud.configurato()) {
       html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">' +
         'La sincronizzazione con l\'app per telefono non è ancora configurata: manca la chiave di Clerk in <code>js/config.js</code>. ' +
-        'Finché non c\'è, il sito funziona normalmente ma i dati restano solo su questo computer.</p>';
+        'Finché non c\'è, il sito funziona normalmente ma i dati restano solo su questo dispositivo.</p>';
+      html += diagnostica(null);
       html += '</div>';
       return html;
     }
@@ -728,8 +760,11 @@
       html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">' +
         'Accedi con la tua email per ritrovare gli stessi turni sull\'app del telefono. ' +
         'Senza accesso il sito continua a funzionare, ma solo in locale.</p>';
+      // Il bottone resta cliccabile anche dopo un errore: quasi sempre è la rete
+      // che ha avuto un singhiozzo, e un secondo tentativo basta.
       html += '<button class="btn primary sm" data-action="cloud-login"' + (st.pronto ? '' : ' disabled') + '>' +
-        (st.pronto ? 'Accedi' : 'Caricamento…') + '</button>';
+        (st.pronto ? (st.motivo === 'irraggiungibile' ? 'Riprova ad accedere' : 'Accedi') : 'Caricamento…') + '</button>';
+      if (!st.disponibile) html += diagnostica(st);
     } else {
       var pendenti = Store.syncState();
       var daInviare = pendenti.dirtyShifts.length + pendenti.dirtyCheckins.length +
@@ -761,7 +796,8 @@
   /* =========================================================
      IMPOSTAZIONI
      ========================================================= */
-  function impostazioni() {
+  function impostazioni(ctx) {
+    ctx = ctx || {};
     var s = Store.settings();
     var giorni = [1, 2, 3, 4, 5, 6, 0];
     var html = '';
@@ -877,6 +913,8 @@
       '<button type="button" class="chip' + (s.tema === 'light' ? ' on' : '') + '" data-action="theme" data-theme="light">Chiaro</button>' +
       '</div></div>';
     html += '<p class="tiny muted" style="margin:14px 0 0">Percentage è una web app installabile: su Android usa "Aggiungi a schermata Home" dal menu del browser, su iPhone il pulsante Condividi → "Aggiungi a Home". Una volta installata funziona anche offline.</p>';
+    html += '<p class="tiny muted" style="margin:8px 0 0">Versione servita: ' +
+      (ctx.swVersione ? '<code>' + esc(ctx.swVersione) + '</code>' : 'nessun service worker attivo') + '</p>';
     html += '</div>';
 
     return html;

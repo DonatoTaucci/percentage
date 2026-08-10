@@ -380,9 +380,24 @@
 
       /* --- account e sincronizzazione --- */
       case 'cloud-login': {
-        var dlg = document.getElementById('clerk-modal');
-        global.Cloud.apriAccesso();
-        if (typeof dlg.showModal === 'function') dlg.showModal();
+        // Se le librerie non sono mai arrivate, il primo clic è un nuovo
+        // tentativo: aprire la finestra senza Clerk caricato darebbe un
+        // riquadro vuoto, che è il modo peggiore di dire "non ha funzionato".
+        var apri = function () {
+          var dlg = document.getElementById('clerk-modal');
+          global.Cloud.apriAccesso();
+          if (typeof dlg.showModal === 'function') dlg.showModal();
+        };
+        if (global.Cloud.stato().disponibile) {
+          apri();
+        } else {
+          render();
+          global.Cloud.riprova().then(function (st) {
+            render();
+            if (st.disponibile) apri();
+            else toast('Servizio di accesso non raggiungibile. Controlla la connessione e riprova.');
+          });
+        }
         break;
       }
 
@@ -646,6 +661,20 @@
       // Solo se un service worker c'era già: alla primissima visita
       // "controllerchange" segnala l'installazione, non un aggiornamento,
       // e i file in pagina sono comunque quelli giusti.
+      // Chiedo al service worker quale versione sta servendo, così la scheda
+      // "App" può dirlo senza aprire gli strumenti da sviluppatore.
+      navigator.serviceWorker.addEventListener('message', function (e) {
+        if (e.data && e.data.tipo === 'versione') {
+          ctx.swVersione = e.data.cache;
+          render();
+        }
+      });
+      var chiediVersione = function () {
+        if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('versione');
+      };
+      chiediVersione();
+      navigator.serviceWorker.ready.then(chiediVersione);
+
       var avevaControllo = !!navigator.serviceWorker.controller;
       var giaRicaricato = false;
       navigator.serviceWorker.addEventListener('controllerchange', function () {

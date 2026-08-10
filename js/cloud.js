@@ -16,6 +16,8 @@ const stato = {
   supabase: null,
   utente: null,
   errore: null,
+  motivo: 'avvio',   // avvio | senza-chiave | irraggiungibile | ok
+  dettaglio: null,
   sincronizzando: false,
   ultimaSync: null
 };
@@ -25,20 +27,36 @@ const notifica = () => ascoltatori.forEach(fn => fn(stato));
 
 /* ---------------- avvio ---------------- */
 
+/* Le librerie arrivano dalla rete, e la rete può non rispondere affatto:
+   una richiesta che resta appesa lascerebbe il bottone di accesso su
+   "Caricamento…" per sempre. Meglio arrendersi dopo qualche secondo e
+   dirlo, così l'utente sa che il problema è la rete e non la sua app. */
+const TIMEOUT_MS = 12000;
+
+function conTimeout(promessa, messaggio) {
+  let orologio;
+  const scadenza = new Promise((_, rifiuta) => {
+    orologio = setTimeout(() => rifiuta(new Error(messaggio)), TIMEOUT_MS);
+  });
+  return Promise.race([promessa, scadenza]).finally(() => clearTimeout(orologio));
+}
+
 async function init() {
   if (!CFG.CLERK_PUBLISHABLE_KEY || !CFG.SUPABASE_URL) {
     stato.errore = null;         // non è un errore: è semplicemente non configurato
+    stato.motivo = 'senza-chiave';
+    stato.pronto = true;
     notifica();
     return;
   }
   try {
-    const [{ Clerk }, { createClient }] = await Promise.all([
+    const [{ Clerk }, { createClient }] = await conTimeout(Promise.all([
       import(/* @vite-ignore */ CLERK_URL),
       import(/* @vite-ignore */ SUPABASE_URL_LIB)
-    ]);
+    ]), 'librerie');
 
     const clerk = new Clerk(CFG.CLERK_PUBLISHABLE_KEY);
-    await clerk.load({ afterSignOutUrl: window.location.href });
+    await conTimeout(clerk.load({ afterSignOutUrl: window.location.href }), 'clerk');
     stato.clerk = clerk;
 
     stato.supabase = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_KEY, {
@@ -48,6 +66,7 @@ async function init() {
 
     stato.disponibile = true;
     stato.pronto = true;
+    stato.motivo = 'ok';
     stato.utente = clerk.user ? riassuntoUtente(clerk.user) : null;
 
     clerk.addListener(({ user }) => {
@@ -61,9 +80,27 @@ async function init() {
     if (stato.utente) sincronizza(true);
   } catch (err) {
     stato.errore = 'Servizio di accesso non raggiungibile: l\'app resta utilizzabile in locale.';
+    stato.motivo = 'irraggiungibile';
+    stato.dettaglio = String(err && err.message || err).slice(0, 200);
     stato.pronto = true;
     notifica();
   }
+}
+
+/* Un nuovo tentativo dopo un errore di rete. Restituisce sempre una promessa
+   risolta a caricamento finito, così chi chiama sa quando riprovare ad aprire
+   la finestra di accesso. */
+let inCorso = null;
+function riprova() {
+  if (stato.disponibile) return Promise.resolve(stato);
+  if (!inCorso) {
+    stato.errore = null;
+    stato.pronto = false;
+    stato.motivo = 'avvio';
+    notifica();
+    inCorso = init().finally(() => { inCorso = null; });
+  }
+  return inCorso.then(() => stato);
 }
 
 function riassuntoUtente(u) {
@@ -211,6 +248,7 @@ window.Cloud = {
   connesso: () => !!stato.utente,
   onChange: fn => ascoltatori.push(fn),
   apriAccesso,
+  riprova,
   esci,
   sincronizza
 };

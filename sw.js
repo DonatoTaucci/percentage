@@ -46,6 +46,12 @@ self.addEventListener('activate', function (e) {
   );
 });
 
+// La pagina chiede quale versione la sta servendo: è l'unico modo, dall'esterno,
+// di distinguere "il sito è aggiornato" da "il browser mostra una copia vecchia".
+self.addEventListener('message', function (e) {
+  if (e.data === 'versione' && e.source) e.source.postMessage({ tipo: 'versione', cache: CACHE });
+});
+
 self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
