@@ -17,7 +17,7 @@
   /* ---------------- utilità ---------------- */
 
   function toast(msg, ms) {
-    toastEl.textContent = msg;
+    toastEl.textContent = T(msg);
     toastEl.classList.add('show');
     clearTimeout(toast._t);
     toast._t = setTimeout(function () { toastEl.classList.remove('show'); }, ms || 2600);
@@ -41,16 +41,73 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
   }
 
+  /* ---------------- accesso obbligatorio ----------------
+
+     Il sito si apre sulla presentazione e mostra l'applicazione solo a chi
+     ha effettuato l'accesso. Un'eccezione: chi è già entrato almeno una
+     volta su questo dispositivo può proseguire anche quando il servizio di
+     accesso non risponde. Senza quella deroga un'applicazione installabile
+     e dichiaratamente utilizzabile offline smetterebbe di funzionare al
+     primo problema di rete, che è il momento in cui serve di più. */
+
+  var CHIAVE_ACCESSO = 'percentage.giaAccesso';
+
+  function giaAccesso() {
+    try { return localStorage.getItem(CHIAVE_ACCESSO) === '1'; } catch (e) { return false; }
+  }
+  function segnaAccesso() {
+    try { localStorage.setItem(CHIAVE_ACCESSO, '1'); } catch (e) { /* ignorato */ }
+  }
+
+  function statoAccesso() {
+    var cloud = global.Cloud;
+    if (!cloud || !cloud.configurato()) {
+      // Senza configurazione non c'è nessun accesso da chiedere: sarebbe una
+      // porta chiusa senza serratura. Si entra, in locale.
+      return { entra: true, motivo: 'non-configurato' };
+    }
+    var st = cloud.stato();
+    if (st.utente) return { entra: true, motivo: 'autenticato' };
+    if (ctx.offlineForzato && giaAccesso()) return { entra: true, motivo: 'offline' };
+    return {
+      entra: false,
+      pronto: st.pronto,
+      errore: st.motivo === 'irraggiungibile' ? st.errore : null,
+      giaAccesso: st.motivo === 'irraggiungibile' && giaAccesso()
+    };
+  }
+
+  function renderGate() {
+    var landing = document.getElementById('landing');
+    var app = document.getElementById('app');
+    var s = statoAccesso();
+
+    if (s.entra) {
+      landing.classList.add('hidden');
+      landing.innerHTML = '';
+      app.classList.remove('hidden');
+      render();
+    } else {
+      app.classList.add('hidden');
+      landing.classList.remove('hidden');
+      landing.innerHTML = UI.landing(s);
+      I18n.traduciDOM(landing);
+    }
+    return s.entra;
+  }
+
   /* ---------------- rendering ---------------- */
 
   function render() {
+    if (document.getElementById('app').classList.contains('hidden')) return;
+
     var sub = document.getElementById('topbar-sub');
     var titles = {
-      dashboard: 'Turni, ore e benessere',
-      turni: 'Registro dei turni',
-      statistiche: 'Andamento nel tempo',
-      benessere: 'Prevenzione di stress e burnout',
-      impostazioni: 'Contratto, dati e app'
+      dashboard: T('Turni, ore e benessere'),
+      turni: T('Registro dei turni'),
+      statistiche: T('Andamento nel tempo'),
+      benessere: T('Prevenzione di stress e burnout'),
+      impostazioni: T('Contratto, dati e app')
     };
     if (sub) sub.textContent = titles[ctx.view] || '';
 
@@ -68,6 +125,7 @@
       default: html = UI.dashboard(ctx);
     }
     main.innerHTML = html;
+    I18n.traduciDOM(main);
 
     var chat = document.getElementById('chat');
     if (chat) chat.scrollTop = chat.scrollHeight;
@@ -86,6 +144,7 @@
 
   function openShiftForm(shift) {
     modalBody.innerHTML = UI.shiftForm(shift);
+    I18n.traduciDOM(modalBody);
     updatePreview();
     if (typeof modal.showModal === 'function') modal.showModal();
     else modal.setAttribute('open', 'open');
@@ -109,6 +168,7 @@
     prev.textContent = 'Ore lavorate: ' + Calc.fmtDuration(min) +
       (target > 0 ? ' · ' + Calc.fmtPct((min / target) * 100) + ' del previsto' : '') +
       (Calc.parseTime(end) < Calc.parseTime(start) ? ' · turno a cavallo di mezzanotte' : '');
+    I18n.traduciDOM(prev);
   }
 
   function submitShift(e) {
@@ -378,28 +438,24 @@
         render();
         break;
 
-      /* --- account e sincronizzazione --- */
-      case 'cloud-login': {
-        // Se le librerie non sono mai arrivate, il primo clic è un nuovo
-        // tentativo: aprire la finestra senza Clerk caricato darebbe un
-        // riquadro vuoto, che è il modo peggiore di dire "non ha funzionato".
-        var apri = function () {
-          var dlg = document.getElementById('clerk-modal');
-          global.Cloud.apriAccesso();
-          if (typeof dlg.showModal === 'function') dlg.showModal();
-        };
-        if (global.Cloud.stato().disponibile) {
-          apri();
-        } else {
-          render();
-          global.Cloud.riprova().then(function (st) {
-            render();
-            if (st.disponibile) apri();
-            else toast('Servizio di accesso non raggiungibile. Controlla la connessione e riprova.');
-          });
-        }
+      /* --- landing --- */
+      case 'theme-toggle':
+        cambiaTema();
         break;
-      }
+
+      case 'entra':
+        apriAccesso();
+        break;
+
+      case 'entra-offline':
+        ctx.offlineForzato = true;
+        renderGate();
+        break;
+
+      /* --- account e sincronizzazione --- */
+      case 'cloud-login':
+        apriAccesso();
+        break;
 
       case 'close-clerk': {
         var dlg2 = document.getElementById('clerk-modal');
@@ -419,10 +475,14 @@
         break;
 
       case 'cloud-logout':
-        if (global.confirm('Uscire dall\'account? I dati restano sul server e li ritrovi al prossimo accesso; da questo computer verranno rimossi.')) {
+        if (global.confirm(T('Uscire dall\'account? I dati restano sul server e li ritrovi al prossimo accesso; da questo dispositivo verranno rimossi.'))) {
           global.Cloud.esci().then(function () {
-            toast('Uscito dall\'account.');
-            render();
+            // Uscire è una scelta esplicita: si torna alla presentazione, e la
+            // scorciatoia "continua senza connessione" non deve scavalcarla.
+            ctx.offlineForzato = false;
+            try { localStorage.removeItem(CHIAVE_ACCESSO); } catch (e) { /* ignorato */ }
+            toast(T('Uscito dall\'account.'));
+            renderGate();
           });
         }
         break;
@@ -579,9 +639,86 @@
     var meter = document.getElementById('punch-meter');
     if (meter) meter.innerHTML = Charts.meter(pct, 'var(--accent)');
     var pctEl = document.getElementById('punch-pct');
-    if (pctEl) pctEl.textContent = Calc.fmtPct(pct) + ' di ' + Calc.fmtDuration(target);
+    if (pctEl) { pctEl.textContent = Calc.fmtPct(pct) + ' di ' + Calc.fmtDuration(target); I18n.traduciDOM(pctEl); }
     var det = document.getElementById('punch-detail');
-    if (det) det.innerHTML = UI.punchDetail(p, t, Calc.expectedEnd(p, st, Math.max(0, target - giorno.worked)));
+    if (det) { det.innerHTML = UI.punchDetail(p, t, Calc.expectedEnd(p, st, Math.max(0, target - giorno.worked))); I18n.traduciDOM(det); }
+  }
+
+  /* ---------------- accesso ---------------- */
+
+  /* Se le librerie non sono mai arrivate, il primo clic è un nuovo tentativo:
+     aprire la finestra senza Clerk caricato darebbe un riquadro vuoto, che è
+     il modo peggiore di dire "non ha funzionato". */
+  function apriAccesso() {
+    var apri = function () {
+      var dlg = document.getElementById('clerk-modal');
+      global.Cloud.apriAccesso();
+      if (typeof dlg.showModal === 'function') dlg.showModal();
+    };
+    if (global.Cloud.stato().disponibile) { apri(); return; }
+    renderGate();
+    global.Cloud.riprova().then(function (st) {
+      renderGate();
+      if (st.disponibile) apri();
+      else toast(T('Servizio di accesso non raggiungibile. Controlla la connessione e riprova.'));
+    });
+  }
+
+  /* ---------------- lingua e tema ---------------- */
+
+  function cambiaTema() {
+    var next = Store.settings().tema === 'light' ? 'dark' : 'light';
+    Store.updateSettings({ tema: next });
+    applyTheme(next);
+    renderGate();
+  }
+
+  function riempiSelettoreLingua() {
+    var sel = document.getElementById('sel-lingua');
+    if (!sel) return;
+    sel.innerHTML = I18n.lingue.map(function (l) {
+      return '<option value="' + l.code + '"' + (l.code === I18n.lingua() ? ' selected' : '') + '>' +
+        l.bandiera + '  ' + l.nome + '</option>';
+    }).join('');
+    sel.setAttribute('aria-label', T('Lingua'));
+  }
+
+  /* Le poche stringhe scritte direttamente in index.html: nomi delle schede,
+     titoli dei pulsanti, testo del piè di pagina. */
+  function traduciMarcatura() {
+    var etichette = {
+      dashboard: T('Oggi'),
+      turni: T('Turni'),
+      statistiche: T('Statistiche'),
+      benessere: T('Benessere'),
+      impostazioni: T('Impostazioni')
+    };
+    document.querySelectorAll('.tab').forEach(function (t) {
+      var testo = etichette[t.dataset.view];
+      if (!testo) return;
+      var span = t.querySelector('span');
+      if (span) span.textContent = testo;
+      t.setAttribute('aria-label', testo);
+    });
+
+    var titoli = [
+      ['btn-theme', T('Cambia tema')],
+      ['btn-install', T('Installa l\'app')]
+    ];
+    titoli.forEach(function (v) {
+      var el = document.getElementById(v[0]);
+      if (!el) return;
+      el.title = v[1];
+      el.setAttribute('aria-label', v[1]);
+    });
+
+    var foot = document.querySelector('.foot span');
+    if (foot) foot.textContent = T('I dati restano sul tuo dispositivo.');
+
+    var chiudi = document.querySelector('[data-action="close-clerk"]');
+    if (chiudi) chiudi.textContent = T('Chiudi');
+
+    document.title = T('Percentage — Turni, ore e benessere');
   }
 
   /* ---------------- avvio ---------------- */
@@ -604,11 +741,18 @@
     modalBody.addEventListener('submit', submitShift);
     modalBody.addEventListener('click', onModalClick);
 
-    document.getElementById('btn-theme').addEventListener('click', function () {
-      var next = Store.settings().tema === 'light' ? 'dark' : 'light';
-      Store.updateSettings({ tema: next });
-      applyTheme(next);
-      render();
+    document.getElementById('btn-theme').addEventListener('click', cambiaTema);
+
+    // Il selettore della barra e quello della landing sono due elementi
+    // distinti perché le due schermate sono separate: la logica è una sola.
+    document.addEventListener('change', function (e) {
+      if (!e.target || e.target.id !== 'sel-lingua' && e.target.id !== 'sel-lingua-landing') return;
+      I18n.imposta(e.target.value);
+    });
+    I18n.onChange(function () {
+      riempiSelettoreLingua();
+      traduciMarcatura();
+      renderGate();
     });
 
     global.addEventListener('beforeinstallprompt', function (e) {
@@ -626,19 +770,32 @@
       });
     });
 
-    render();
+    // Il dizionario della lingua scelta arriva da un file a parte: disegnare
+    // prima mostrerebbe l'italiano per un istante a chi ha scelto altro.
+    I18n.precarica().then(function () {
+      riempiSelettoreLingua();
+      traduciMarcatura();
+      renderGate();
+    });
 
     setInterval(tickPunch, 1000);
     Geo.sync();
 
     // Il modulo cloud si carica dopo (è un modulo ES): quando cambia stato,
-    // la vista si aggiorna da sola.
+    // la vista si aggiorna da sola. È anche il momento in cui si scopre se
+    // l'utente ha una sessione valida, cioè se mostrare l'app o la landing.
     var attesaCloud = setInterval(function () {
       if (!global.Cloud) return;
       clearInterval(attesaCloud);
       global.Cloud.onChange(function () {
-        if (ctx.view === 'impostazioni') render();
+        if (global.Cloud.connesso()) {
+          segnaAccesso();
+          var dlg = document.getElementById('clerk-modal');
+          if (dlg && dlg.open && typeof dlg.close === 'function') dlg.close();
+        }
+        renderGate();
       });
+      renderGate();
     }, 300);
     setTimeout(function () { clearInterval(attesaCloud); }, 15000);
 
@@ -692,5 +849,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  global.App = { ctx: ctx, render: render, go: go, toast: toast };
+  global.App = { ctx: ctx, render: render, renderGate: renderGate, go: go, toast: toast };
 })(window);

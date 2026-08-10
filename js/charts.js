@@ -78,7 +78,7 @@
       var bh = Math.max(v > 0 ? 3 : 0, innerH * (v / maxV));
       var y = padT + innerH - bh;
       var col = d.color || (d.highlight ? 'var(--accent)' : 'var(--accent-soft)');
-      out += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="4" fill="' + col + '"><title>' + esc(d.title || (d.label + ': ' + v)) + '</title></rect>';
+      out += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="4" fill="' + col + '"><title data-no-i18n>' + esc(d.title || (d.label + ': ' + v)) + '</title></rect>';
 
       if (d.target > 0) {
         var ty = padT + innerH - innerH * (d.target / maxV);
@@ -128,7 +128,7 @@
     }
 
     data.forEach(function (d, i) {
-      out += '<circle cx="' + px(i).toFixed(1) + '" cy="' + py(d.value).toFixed(1) + '" r="3.6" fill="var(--accent)"><title>' + esc(d.label + ': ' + Calc.fmtPct(d.value)) + '</title></circle>';
+      out += '<circle cx="' + px(i).toFixed(1) + '" cy="' + py(d.value).toFixed(1) + '" r="3.6" fill="var(--accent)"><title data-no-i18n>' + esc(d.label + ': ' + Calc.fmtPct(d.value)) + '</title></circle>';
       var every = Math.ceil(n / 8);
       if (i % every === 0 || i === n - 1) {
         out += '<text x="' + px(i).toFixed(1) + '" y="' + (h - 7) + '" text-anchor="middle">' + esc(d.label) + '</text>';

@@ -3,11 +3,34 @@
   'use strict';
 
   var MS_DAY = 86400000;
-  var MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
-    'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
-  var MESI_BREVI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
-  var GIORNI = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
-  var GIORNI_BREVI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+
+  /* Nomi di mesi e giorni: li chiediamo al browser invece di elencarli.
+     Un dizionario di traduzione qui sarebbe sbagliato due volte — l'iniziale
+     di "martedì" e "mercoledì" è la stessa lettera, quindi una singola voce
+     "M" non potrebbe rendere entrambe — e comunque ogni lingua ha le proprie
+     abbreviazioni, che Intl conosce già. */
+  var GENNAIO_2024 = Date.UTC(2024, 0, 1);   // un lunedì, comodo per i giorni
+
+  function nomi(tipo, formato) {
+    var lingua = (global.I18n && global.I18n.lingua()) || 'it';
+    var fmt = new Intl.DateTimeFormat(lingua, tipo === 'mese'
+      ? { month: formato, timeZone: 'UTC' }
+      : { weekday: formato, timeZone: 'UTC' });
+    var out = [];
+    if (tipo === 'mese') {
+      for (var m = 0; m < 12; m++) out.push(fmt.format(new Date(Date.UTC(2024, m, 1))));
+    } else {
+      // indice 0 = domenica, come getDay()
+      for (var g = 0; g < 7; g++) out.push(fmt.format(new Date(GENNAIO_2024 + (g - 1) * MS_DAY)));
+    }
+    return out;
+  }
+
+  // Ricalcolati a ogni chiamata: la lingua può cambiare ad app aperta.
+  function mesi() { return nomi('mese', 'long'); }
+  function mesiBrevi() { return nomi('mese', 'short'); }
+  function giorni() { return nomi('giorno', 'long'); }
+  function giorniBrevi() { return nomi('giorno', 'short'); }
 
   var TIPI = {
     lavoro:   { label: 'Lavoro',    conteggia: 'ore' },
@@ -96,14 +119,14 @@
 
   function fmtDate(iso, style) {
     var d = fromISO(iso);
-    if (style === 'long') return GIORNI[d.getDay()] + ' ' + d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear();
-    if (style === 'medium') return GIORNI_BREVI[d.getDay()] + ' ' + d.getDate() + ' ' + MESI_BREVI[d.getMonth()];
+    if (style === 'long') return giorni()[d.getDay()] + ' ' + d.getDate() + ' ' + mesi()[d.getMonth()] + ' ' + d.getFullYear();
+    if (style === 'medium') return giorniBrevi()[d.getDay()] + ' ' + d.getDate() + ' ' + mesiBrevi()[d.getMonth()];
     return d.getDate() + '/' + pad(d.getMonth() + 1);
   }
 
   function fmtMonth(iso) {
     var d = fromISO(iso);
-    return MESI[d.getMonth()] + ' ' + d.getFullYear();
+    return mesi()[d.getMonth()] + ' ' + d.getFullYear();
   }
 
   // 495 -> "8h 15m"
@@ -382,7 +405,11 @@
   }
 
   global.Calc = {
-    MESI: MESI, MESI_BREVI: MESI_BREVI, GIORNI: GIORNI, GIORNI_BREVI: GIORNI_BREVI, TIPI: TIPI,
+    get MESI() { return mesi(); },
+    get MESI_BREVI() { return mesiBrevi(); },
+    get GIORNI() { return giorni(); },
+    get GIORNI_BREVI() { return giorniBrevi(); },
+    TIPI: TIPI,
     pad: pad, toISO: toISO, fromISO: fromISO, today: today, addDays: addDays, dow: dow,
     weekStart: weekStart, weekEnd: weekEnd, monthStart: monthStart, monthEnd: monthEnd,
     addMonths: addMonths, daysBetween: daysBetween, isoWeekNumber: isoWeekNumber,

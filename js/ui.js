@@ -9,6 +9,113 @@
     });
   }
 
+  /* =========================================================
+     LANDING — solo sito. L'app per telefono parte dall'accesso.
+     ========================================================= */
+
+  function selettoreLingua(id) {
+    var attuale = I18n.lingua();
+    var opzioni = I18n.lingue.map(function (l) {
+      return '<option value="' + l.code + '"' + (l.code === attuale ? ' selected' : '') + '>' +
+        l.bandiera + '  ' + esc(l.nome) + '</option>';
+    }).join('');
+    return '<select id="' + id + '" class="sel-lingua" aria-label="' + esc(T('Lingua')) + '">' + opzioni + '</select>';
+  }
+
+  function landingCard(icona, titolo, testo) {
+    return '<div class="landing-card">' +
+      '<div class="landing-ico">' + icona + '</div>' +
+      '<h3>' + esc(titolo) + '</h3>' +
+      '<p>' + esc(testo) + '</p>' +
+      '</div>';
+  }
+
+  function passo(titolo, testo) {
+    return '<div class="passo"><h4>' + esc(titolo) + '</h4><p>' + esc(testo) + '</p></div>';
+  }
+
+  function landing(stato) {
+    stato = stato || {};
+    var ICO = {
+      timbro: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg>',
+      grafico: '<svg viewBox="0 0 24 24"><path d="M4 20V13M9.3 20V6M14.7 20v-9M20 20V9"/></svg>',
+      gps: '<svg viewBox="0 0 24 24"><path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>',
+      cuore: '<svg viewBox="0 0 24 24"><path d="M20.3 6.7a4.6 4.6 0 0 0-6.6 0L12 8.4l-1.7-1.7a4.6 4.6 0 1 0-6.6 6.5l8.3 8.3 8.3-8.3a4.6 4.6 0 0 0 0-6.5Z"/></svg>'
+    };
+
+    var html = '<div class="landing">';
+
+    /* intestazione */
+    html += '<div class="landing-top">';
+    html += '<div class="brand"><span class="brand-mark">%</span><div>' +
+      '<h1>Percentage</h1><p>' + esc(T('Turni, ore e benessere')) + '</p></div></div>';
+    html += '<div class="row" style="gap:8px">' + selettoreLingua('sel-lingua-landing') +
+      '<button class="icon-btn" type="button" data-action="theme-toggle" title="' + esc(T('Cambia tema')) + '" aria-label="' + esc(T('Cambia tema')) + '">◐</button>' +
+      '</div>';
+    html += '</div>';
+
+    /* hero */
+    html += '<div class="hero">';
+    html += '<h2>' + esc(T('Quanto stai lavorando davvero?')) + '</h2>';
+    html += '<p class="lead">' + esc(T('Timbri entrata e uscita, e Percentage calcola quanto hai lavorato rispetto al tuo orario: ogni giorno, ogni settimana, ogni mese. Straordinari compresi. E ti aiuta ad accorgerti per tempo se stai esagerando.')) + '</p>';
+
+    html += '<div class="hero-cta">';
+    if (stato.errore) {
+      html += '<button class="btn primary" data-action="entra">' + esc(T('Riprova ad accedere')) + '</button>';
+    } else {
+      html += '<button class="btn primary" data-action="entra"' + (stato.pronto ? '' : ' disabled') + '>' +
+        esc(stato.pronto ? T('Entra') : T('Caricamento…')) + '</button>';
+    }
+    if (stato.giaAccesso) {
+      html += '<button class="btn" data-action="entra-offline">' + esc(T('Continua senza connessione')) + '</button>';
+    }
+    html += '</div>';
+
+    if (stato.errore) {
+      html += '<div class="note" style="max-width:56ch;margin:18px auto 0">' + esc(stato.errore) + '</div>';
+    }
+    html += '<p class="hero-nota">' + esc(T('Serve un account: è quello che fa ritrovare gli stessi turni sul computer e sul telefono.')) + '</p>';
+    html += '</div>';
+
+    /* cosa fa */
+    html += '<div class="landing-grid">';
+    html += landingCard(ICO.timbro, T('Come un badge'),
+      T('Premi un tasto quando entri e uno quando esci, pausa pranzo compresa. Niente moduli da riempire a fine giornata: il turno si scrive da solo.'));
+    html += landingCard(ICO.grafico, T('La percentuale che conta'),
+      T('Imposti il tuo orario una volta, e vedi subito a che punto sei rispetto al dovuto. Su un mese ancora in corso il confronto è con i giorni già passati, non con il mese intero.'));
+    html += landingCard(ICO.gps, T('Timbratura automatica'),
+      T('Sull\'app per telefono puoi indicare dove lavori: entrando e uscendo dalla zona la timbratura parte da sola, anche ad app chiusa, e riconosce l\'uscita per la pausa.'));
+    html += landingCard(ICO.cuore, T('Prima che diventi troppo'),
+      T('Un questionario sul carico di lavoro, unito alle ore che hai davvero fatto, restituisce un indice di rischio e consigli concreti su cosa cambiare.'));
+    html += '</div>';
+
+    /* come funziona */
+    html += '<div class="landing-sez">';
+    html += '<h3>' + esc(T('Come si comincia')) + '</h3>';
+    html += '<p class="sub">' + esc(T('Tre minuti, una volta sola.')) + '</p>';
+    html += '<div class="passi">';
+    html += passo(T('Accedi'), T('Con Google, Apple, Facebook o semplicemente la tua email: ricevi un codice, senza password da ricordare.'));
+    html += passo(T('Imposta il tuo orario'), T('Ora di inizio, pausa pranzo e ora di fine. Da qui l\'app ricava le ore che ti spettano e riconosce gli straordinari.'));
+    html += passo(T('Timbra'), T('Dal computer o dal telefono, indifferentemente: i dati sono gli stessi e si allineano da soli.'));
+    html += '</div></div>';
+
+    /* dispositivi */
+    html += '<div class="landing-sez">';
+    html += '<h3>' + esc(T('Sul computer e sul telefono')) + '</h3>';
+    html += '<p class="sub">' + esc(T('Lo stesso account, gli stessi turni.')) + '</p>';
+    html += '<div class="landing-grid" style="margin-top:0">';
+    html += landingCard(ICO.grafico, T('Dal browser'),
+      T('Questo sito funziona su qualunque computer e si può installare come applicazione. Una volta installato funziona anche senza connessione.'));
+    html += landingCard(ICO.gps, T('App per Android e iPhone'),
+      T('L\'applicazione nativa aggiunge la timbratura automatica con il GPS e le notifiche: cose che un sito, per come sono fatti i browser, non può fare a app chiusa.'));
+    html += '</div></div>';
+
+    html += '<div class="landing-foot">' + esc(T('I turni restano sul tuo dispositivo e sul tuo account. Nient\'altro.')) + '</div>';
+
+    html += '</div>';
+    return html;
+  }
+
   function saldoBadge(minutes) {
     if (Math.abs(minutes) < 1) return '<span class="badge">In pari</span>';
     if (minutes > 0) return '<span class="badge warn">+' + Calc.fmtDuration(minutes) + '</span>';
@@ -320,7 +427,7 @@
     } else {
       sub = (Calc.TIPI[s.tipo] || {}).label || s.tipo;
     }
-    if (s.note) sub += ' · ' + esc(s.note);
+    if (s.note) sub += ' · <span data-no-i18n>' + esc(s.note) + '</span>';
 
     return '<div class="shift">' +
       '<div class="shift-date"><div class="d">' + d.getDate() + '</div><div class="m">' + Calc.MESI_BREVI[d.getMonth()] + '</div></div>' +
@@ -511,7 +618,7 @@
         label: Calc.GIORNI_BREVI[g],
         value: media,
         color: (st.giorniLavorativi || []).indexOf(g) >= 0 ? 'var(--accent)' : 'var(--violet)',
-        title: Calc.GIORNI[g] + ': media ' + media.toFixed(1).replace('.', ',') + ' h su ' + contGiorno[g] + ' turni'
+        title: Calc.GIORNI[g] + ': ' + T('media {ore} h su {n} turni', { ore: media.toFixed(1).replace('.', ','), n: contGiorno[g] })
       };
     }), { height: 170 });
     html += '<p class="tiny muted" style="margin:10px 0 0">In viola i giorni fuori dal tuo calendario contrattuale.</p>';
@@ -687,7 +794,7 @@
       html += '<div class="msg ai">Posso ragionare sui tuoi dati: ore, straordinari, giorni consecutivi e ultimo check-in. Chiedimi qualcosa, oppure usa "Analizza i miei dati" per una lettura completa.</div>';
     }
     chat.forEach(function (m) {
-      html += '<div class="msg ' + (m.role === 'user' ? 'me' : 'ai') + '">' + esc(m.content) + '</div>';
+      html += '<div class="msg ' + (m.role === 'user' ? 'me' : 'ai') + '" data-no-i18n>' + esc(m.content) + '</div>';
     });
     if (ctx.aiBusy) html += '<div class="msg ai muted">Sto elaborando…</div>';
     html += '</div>';
@@ -979,6 +1086,8 @@
 
   global.UI = {
     esc: esc,
+    landing: landing,
+    selettoreLingua: selettoreLingua,
     fmtClock: fmtClock,
     punchDetail: punchDetail,
     dashboard: dashboard,

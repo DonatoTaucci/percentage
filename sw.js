@@ -9,13 +9,18 @@
    browser hanno continuato a leggere vuota dopo che era stata aggiunta.
    Sono file di pochi kB: quando la rete c'è, riprenderli costa poco;
    quando non c'è, la copia in cache resta e il sito funziona offline. */
-var CACHE = 'percentage-v4';
+var CACHE = 'percentage-v5';
 var ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/style.css',
   './js/config.js',
+  './js/i18n.js',
+  './js/lang/en.js',
+  './js/lang/es.js',
+  './js/lang/fr.js',
+  './js/lang/de.js',
   './js/store.js',
   './js/calc.js',
   './js/charts.js',

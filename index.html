@@ -16,7 +16,9 @@
 </head>
 <body>
 
-<div id="app">
+<div id="landing" class="hidden"></div>
+
+<div id="app" class="hidden">
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">%</span>
@@ -26,6 +28,7 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <select id="sel-lingua" class="sel-lingua" aria-label="Lingua"></select>
       <button id="btn-theme" class="icon-btn" type="button" title="Cambia tema" aria-label="Cambia tema">◐</button>
       <button id="btn-install" class="icon-btn hidden" type="button" title="Installa l'app" aria-label="Installa l'app">⤓</button>
     </div>
@@ -63,6 +66,7 @@
 </dialog>
 
 <script src="js/config.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/store.js"></script>
 <script src="js/calc.js"></script>
 <script src="js/charts.js"></script>
