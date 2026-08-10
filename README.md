@@ -11,8 +11,15 @@ Il progetto è composto da tre parti che condividono lo stesso account e gli ste
 | **radice del repo** | Sito web / PWA | Da PC, senza installare nulla |
 | **Supabase + Clerk** | Server condiviso | Stesso account su telefono e computer: i turni sono gli stessi |
 
+Il **sito si apre su una pagina di presentazione** e richiede l'accesso per entrare
+nell'applicazione. Chi è già entrato una volta su quel dispositivo può proseguire anche
+quando il servizio di accesso non risponde: senza quella deroga un'app installabile e
+utilizzabile offline smetterebbe di funzionare al primo problema di rete.
+
 Entrambi i client sono **local-first**: funzionano offline e sincronizzano appena c'è rete.
-Senza account restano perfettamente utilizzabili, solo senza condivisione fra dispositivi.
+
+L'interfaccia del sito è disponibile in **italiano, inglese, spagnolo, francese e tedesco**;
+la lingua si cambia dal selettore in alto e resta memorizzata.
 
 👉 **Prima configurazione: [SETUP.md](SETUP.md)** (server e chiavi già pronti, manca solo
 il collegamento fra Clerk e Supabase).
@@ -66,6 +73,13 @@ il collegamento fra Clerk e Supabase).
 - Riepilogo mensile dell'anno con ore lavorate, previste, percentuale, straordinari e saldo.
 - Distribuzione delle ore medie per giorno della settimana.
 
+**Lingua** (solo sito)
+- Interfaccia in italiano, inglese, spagnolo, francese e tedesco, dal selettore in alto.
+- Alla prima visita viene proposta la lingua del browser, se fra quelle disponibili.
+- Nomi di mesi e giorni vengono dal sistema (`Intl`), non da un elenco tradotto a mano.
+- Restano in italiano i testi lunghi dei consigli anti-burnout; l'assistente IA risponde
+  nella lingua in cui gli si scrive.
+
 **Benessere (prevenzione burnout)**
 - Check-in di 16 domande su energia, sonno, recupero, carico, confini, ansia, motivazione e supporto.
 - Indice di rischio 0-100 che **incrocia le risposte con i dati reali dei turni**: media settimanale,
@@ -100,6 +114,17 @@ Il progetto è composto solo da file statici: basta pubblicare la cartella su Gi
 Netlify, Vercel o qualunque hosting statico. Nessuna build, nessuna dipendenza.
 
 Per GitHub Pages: *Settings → Pages → Deploy from a branch*, scegliere il branch e la cartella `/`.
+
+### Lavorare sulle traduzioni
+
+```bash
+npm run chiavi            # rilegge le frasi rendendo ogni schermata in Chromium
+npm run chiavi:verifica   # esce con errore se ci sono frasi nuove o sparite
+npm run lingue            # copertura dei dizionari e coerenza dei segnaposto
+```
+
+Le chiavi sono i testi italiani (`js/lang/_chiavi.json`), i dizionari stanno in `js/lang/`.
+Cambiare una frase italiana invalida le sue traduzioni: `npm run chiavi:verifica` lo segnala.
 
 ### Installazione sul telefono
 

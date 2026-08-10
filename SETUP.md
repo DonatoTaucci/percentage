@@ -31,8 +31,16 @@ Applicazione di sviluppo `fleet-pigeon-30`, publishable key
 `pk_test_ZmxlZXQtcGlnZW9uLTMwLmNsZXJrLmFjY291bnRzLmRldiQ`.
 
 Controlla che in **User & Authentication → Email, Phone, Username** sia attivo
-**Email address** con verifica **Email verification code**: entrambi i client accedono
-con il codice via email, non con la password.
+**Email address** con verifica **Email verification code**.
+
+Sono attivi anche **Google, Apple e Facebook**, e ora funzionano su entrambi i client:
+il sito usa il riquadro di Clerk, l'app i tre pulsanti in cima alla schermata di accesso.
+In *Development mode* Clerk usa le proprie credenziali condivise per i provider social;
+passando in produzione andranno registrate le app presso Google, Apple e Meta.
+
+> **Nota per l'App Store.** Se un'app offre l'accesso con provider di terze parti, Apple
+> richiede anche *Sign in with Apple*. Qui è offerto tramite browser: se in revisione
+> chiedessero l'integrazione nativa, serve `expo-apple-authentication`.
 
 ### 2b. Chiave inserita ✅
 
