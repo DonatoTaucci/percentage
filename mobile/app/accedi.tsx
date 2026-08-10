@@ -1,18 +1,28 @@
-/* Accesso con Clerk: email + codice di verifica.
-   Lo stesso account vale su telefono e su PC, così i turni sono gli stessi. */
+/* Accesso con Clerk: email + codice di verifica, oppure Google, Apple e
+   Facebook. Lo stesso account vale su telefono e su PC, così i turni sono
+   gli stessi: chi entra dal sito con Google deve poter entrare con Google
+   anche da qui, altrimenti si ritroverebbe due account distinti. */
 
-import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { useSignIn, useSignUp } from '@clerk/clerk-expo';
+import React, { useEffect, useState } from 'react';
+import { View, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Pressable, Text } from 'react-native';
+import { useSignIn, useSignUp, useSSO } from '@clerk/clerk-expo';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import { Btn, Campo, Card, Nota, Txt, usePalette, Riga } from '../src/ui/components';
-import { S } from '../src/ui/theme';
+import { LogoApple, LogoFacebook, LogoGoogle } from '../src/ui/loghi';
+import { S, R } from '../src/ui/theme';
+
+// Chiude la scheda del browser rimasta aperta quando si torna nell'app.
+WebBrowser.maybeCompleteAuthSession();
 
 type Fase = 'email' | 'codice';
+type Provider = 'oauth_google' | 'oauth_apple' | 'oauth_facebook';
 
 export default function Accedi() {
   const p = usePalette();
   const { signIn, setActive: setActiveSignIn, isLoaded: signInPronto } = useSignIn();
   const { signUp, setActive: setActiveSignUp, isLoaded: signUpPronto } = useSignUp();
+  const { startSSOFlow } = useSSO();
 
   const [fase, setFase] = useState<Fase>('email');
   const [email, setEmail] = useState('');
@@ -20,8 +30,33 @@ export default function Accedi() {
   const [nuovoAccount, setNuovoAccount] = useState(false);
   const [errore, setErrore] = useState<string | null>(null);
   const [attesa, setAttesa] = useState(false);
+  const [ssoInCorso, setSsoInCorso] = useState<Provider | null>(null);
 
   const pronto = signInPronto && signUpPronto;
+
+  // Su Android precaricare il browser rende l'apertura molto più rapida.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    void WebBrowser.warmUpAsync();
+    return () => { void WebBrowser.coolDownAsync(); };
+  }, []);
+
+  async function accediCon(strategy: Provider) {
+    if (ssoInCorso) return;
+    setSsoInCorso(strategy);
+    setErrore(null);
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy,
+        redirectUrl: AuthSession.makeRedirectUri(),
+      });
+      // Senza sessione l'utente ha chiuso la finestra: non è un errore da mostrare.
+      if (createdSessionId && setActive) await setActive({ session: createdSessionId });
+    } catch (err: any) {
+      setErrore(messaggio(err));
+    }
+    setSsoInCorso(null);
+  }
 
   function messaggio(err: any): string {
     return err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'Qualcosa non ha funzionato.';
@@ -92,6 +127,37 @@ export default function Accedi() {
           {fase === 'email' ? (
             <View style={{ gap: S.md }}>
               <Txt size={17} weight="700">Accedi</Txt>
+
+              <Riga gap={S.sm}>
+                <BottoneSSO
+                  logo={<LogoGoogle />}
+                  etichetta="Google"
+                  onPress={() => accediCon('oauth_google')}
+                  attesa={ssoInCorso === 'oauth_google'}
+                  disabilitato={!pronto || (!!ssoInCorso && ssoInCorso !== 'oauth_google')}
+                />
+                <BottoneSSO
+                  logo={<LogoApple colore={p.txt} />}
+                  etichetta="Apple"
+                  onPress={() => accediCon('oauth_apple')}
+                  attesa={ssoInCorso === 'oauth_apple'}
+                  disabilitato={!pronto || (!!ssoInCorso && ssoInCorso !== 'oauth_apple')}
+                />
+                <BottoneSSO
+                  logo={<LogoFacebook />}
+                  etichetta="Facebook"
+                  onPress={() => accediCon('oauth_facebook')}
+                  attesa={ssoInCorso === 'oauth_facebook'}
+                  disabilitato={!pronto || (!!ssoInCorso && ssoInCorso !== 'oauth_facebook')}
+                />
+              </Riga>
+
+              <Riga gap={S.sm} style={{ alignItems: 'center' }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: p.line }} />
+                <Txt dim size={12}>oppure</Txt>
+                <View style={{ flex: 1, height: 1, backgroundColor: p.line }} />
+              </Riga>
+
               <Txt dim size={13}>
                 Ti mandiamo un codice via email: nessuna password da ricordare.
                 Con lo stesso indirizzo ritrovi i tuoi dati anche dal computer.
@@ -138,5 +204,40 @@ export default function Accedi() {
         </Txt>
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+/* Pulsante quadrato con il logo del provider. Occupano una riga in tre:
+   il nome sotto il logo serve a chi non riconosce l'icona. */
+function BottoneSSO({ logo, etichetta, onPress, attesa, disabilitato }: {
+  logo: React.ReactNode;
+  etichetta: string;
+  onPress: () => void;
+  attesa?: boolean;
+  disabilitato?: boolean;
+}) {
+  const p = usePalette();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabilitato || attesa}
+      accessibilityRole="button"
+      accessibilityLabel={`Accedi con ${etichetta}`}
+      style={({ pressed }) => ({
+        flex: 1,
+        minHeight: 62,
+        gap: 4,
+        borderRadius: R.sm,
+        borderWidth: 1,
+        borderColor: p.line,
+        backgroundColor: p.card2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: disabilitato ? 0.4 : pressed ? 0.75 : 1,
+      })}
+    >
+      {attesa ? <ActivityIndicator color={p.accent} /> : logo}
+      <Text style={{ color: p.dim, fontSize: 11, fontWeight: '600' }}>{etichetta}</Text>
+    </Pressable>
   );
 }
