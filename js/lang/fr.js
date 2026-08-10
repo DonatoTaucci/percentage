@@ -337,3 +337,41 @@ Object.assign(window.I18N.fr, {
   "Verifica se esistono sportelli di ascolto, RSU o medico competente: sono canali già previsti e spesso poco usati.": "Vérifie s'il existe une cellule d'écoute, des représentants du personnel ou un médecin du travail : ces canaux existent déjà et sont souvent peu utilisés.",
   "Verifico…": "Vérification…"
 });
+
+/* Page d'administration. */
+Object.assign(window.I18N.fr, {
+  "Accesso non consentito.": "Accès refusé.",
+  "Amministrazione": "Administration",
+  "aperta": "en cours",
+  "Attenzione.": "Attention.",
+  "Azzera timbratura": "Effacer le pointage",
+  "Azzerare la timbratura in corso di questo utente?": "Effacer le pointage en cours de cet utilisateur ?",
+  "Check-in": "Points de contrôle",
+  "Check-in ({0})": "Points de contrôle ({0})",
+  "Check-in eliminato.": "Point de contrôle supprimé.",
+  "Chiudi": "Fermer",
+  "Da qui vedi e modifichi i dati di tutti gli utenti. Le modifiche sono immediate e vengono scaricate dai loro dispositivi alla sincronizzazione successiva. La cancellazione è definitiva.": "D'ici tu vois et modifies les données de tous les utilisateurs. Les modifications sont immédiates et leurs appareils les récupèrent à la synchronisation suivante. La suppression est définitive.",
+  "Dati di": "Données de",
+  "Eliminare definitivamente questo check-in?": "Supprimer définitivement ce point de contrôle ?",
+  "Eliminare definitivamente questo turno? Non è una cancellazione sincronizzabile: la riga sparisce dal server.": "Supprimer définitivement ce service ? Ce n'est pas une suppression synchronisable : la ligne disparaît du serveur.",
+  "eliminato": "supprimé",
+  "JSON non valido: {motivo}": "JSON invalide : {motivo}",
+  "Le email non sono nel database: le tiene Clerk. Qui compare l'identificativo utente di Clerk, che è ciò a cui le righe sono collegate.": "Les adresses e-mail ne sont pas dans la base : c'est Clerk qui les détient. Ce que tu vois ici est l'identifiant utilisateur Clerk, auquel les lignes sont réellement rattachées.",
+  "Livello": "Niveau",
+  "Nessun check-in.": "Aucun point de contrôle.",
+  "Nessun turno.": "Aucun service.",
+  "Nessun utente ha ancora sincronizzato dati.": "Aucun utilisateur n'a encore synchronisé de données.",
+  "Punteggio": "Score",
+  "Ricarica": "Recharger",
+  "Serve l'accesso.": "Il faut se connecter.",
+  "Timbratura": "Pointage",
+  "Timbratura aggiornata.": "Pointage mis à jour.",
+  "tu": "toi",
+  "Turni ({0})": "Services ({0})",
+  "Turno aggiornato.": "Service mis à jour.",
+  "Turno salvato.": "Service enregistré.",
+  "Tutti gli utenti e i loro dati": "Tous les utilisateurs et leurs données",
+  "Ultima attività": "Dernière activité",
+  "Utente": "Utilisateur",
+  "Utenti": "Utilisateurs"
+});

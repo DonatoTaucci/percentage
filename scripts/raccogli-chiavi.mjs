@@ -211,6 +211,37 @@ await page.evaluate(() => {
   });
 });
 
+/* 8b. La pagina di amministrazione. Qui nessuno è amministratore — il server
+      non lo consentirebbe — quindi si disegna la vista con uno stato finto:
+      serve a raccogliere le sue frasi, non a provarne i permessi. */
+await page.evaluate(() => {
+  const finto = { verificato: true, admin: true, motivo: 'ok', errore: null };
+  const vero = window.Admin.stato;
+  window.Admin.stato = () => finto;
+  const c = {
+    adminUtenti: [{ user_id: 'user_demo', turni: 12, checkin: 3, timbratura_aperta: true, ultima_attivita: new Date().toISOString() }],
+    adminDati: {
+      userId: 'user_demo',
+      shifts: [{ id: 's1', date: '2026-08-01', start_time: '09:00', end_time: '18:00', break_min: 60, tipo: 'lavoro', note: '' }],
+      checkins: [{ id: 'c1', ts: Date.now(), score: 42, level: 'medio' }],
+      settings: { data: { tema: 'dark' } },
+      punch: { punch: null },
+    },
+  };
+  const b = document.getElementById('main');
+  // con dati, senza dati, e nello stato "non sei amministratore"
+  b.innerHTML = window.UI.amministrazione(c);
+  window.__raccogli(b);
+  b.innerHTML = window.UI.amministrazione({ adminUtenti: [], adminDati: null });
+  window.__raccogli(b);
+  b.innerHTML = window.UI.amministrazione({ adminUtenti: null, adminDati: null, adminErrore: 'Servizio di accesso non raggiungibile. Controlla la connessione e riprova.' });
+  window.__raccogli(b);
+  window.Admin.stato = () => ({ verificato: true, admin: false, motivo: 'non-admin', errore: null });
+  b.innerHTML = window.UI.amministrazione({});
+  window.__raccogli(b);
+  window.Admin.stato = vero;
+});
+
 /* 9. I messaggi che non passano dal DOM: avvisi, conferme e le frasi già
       avvolte in T() nel sorgente. Si leggono dal codice, non dalla pagina. */
 const ESCAPE = { n: '\n', t: '\t', r: '\r', "'": "'", '"': '"', '\\': '\\' };

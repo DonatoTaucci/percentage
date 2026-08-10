@@ -340,3 +340,41 @@ Object.assign(window.I18N.en, {
   "Verifica se esistono sportelli di ascolto, RSU o medico competente: sono canali già previsti e spesso poco usati.": "Check whether there is an employee support service, a workers' representative or an occupational doctor: these channels already exist and are often underused.",
   "Verifico…": "Checking…"
 });
+
+/* Admin page. */
+Object.assign(window.I18N.en, {
+  "Accesso non consentito.": "Access denied.",
+  "Amministrazione": "Administration",
+  "aperta": "open",
+  "Attenzione.": "Careful.",
+  "Azzera timbratura": "Clear clock-in",
+  "Azzerare la timbratura in corso di questo utente?": "Clear this user's open clock-in?",
+  "Check-in": "Check-ins",
+  "Check-in ({0})": "Check-ins ({0})",
+  "Check-in eliminato.": "Check-in deleted.",
+  "Chiudi": "Close",
+  "Da qui vedi e modifichi i dati di tutti gli utenti. Le modifiche sono immediate e vengono scaricate dai loro dispositivi alla sincronizzazione successiva. La cancellazione è definitiva.": "From here you can see and change every user's data. Changes take effect immediately and are pulled down by their devices at the next sync. Deletion is permanent.",
+  "Dati di": "Data for",
+  "Eliminare definitivamente questo check-in?": "Permanently delete this check-in?",
+  "Eliminare definitivamente questo turno? Non è una cancellazione sincronizzabile: la riga sparisce dal server.": "Permanently delete this shift? This is not a syncable deletion: the row disappears from the server.",
+  "eliminato": "deleted",
+  "JSON non valido: {motivo}": "Invalid JSON: {motivo}",
+  "Le email non sono nel database: le tiene Clerk. Qui compare l'identificativo utente di Clerk, che è ciò a cui le righe sono collegate.": "Email addresses are not in the database: Clerk holds them. What you see here is the Clerk user id, which is what the rows are actually linked to.",
+  "Livello": "Level",
+  "Nessun check-in.": "No check-ins.",
+  "Nessun turno.": "No shifts.",
+  "Nessun utente ha ancora sincronizzato dati.": "No user has synced any data yet.",
+  "Punteggio": "Score",
+  "Ricarica": "Reload",
+  "Serve l'accesso.": "You need to sign in.",
+  "Timbratura": "Clock-in",
+  "Timbratura aggiornata.": "Clock-in updated.",
+  "tu": "you",
+  "Turni ({0})": "Shifts ({0})",
+  "Turno aggiornato.": "Shift updated.",
+  "Turno salvato.": "Shift saved.",
+  "Tutti gli utenti e i loro dati": "All users and their data",
+  "Ultima attività": "Last activity",
+  "Utente": "User",
+  "Utenti": "Users"
+});

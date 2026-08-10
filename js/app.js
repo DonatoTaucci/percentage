@@ -107,7 +107,8 @@
       turni: T('Registro dei turni'),
       statistiche: T('Andamento nel tempo'),
       benessere: T('Prevenzione di stress e burnout'),
-      impostazioni: T('Contratto, dati e app')
+      impostazioni: T('Contratto, dati e app'),
+      admin: T('Tutti gli utenti e i loro dati')
     };
     if (sub) sub.textContent = titles[ctx.view] || '';
 
@@ -122,6 +123,7 @@
       case 'statistiche': html = UI.statistiche(ctx); break;
       case 'benessere': html = UI.benessere(ctx); break;
       case 'impostazioni': html = UI.impostazioni(ctx); break;
+      case 'admin': html = UI.amministrazione(ctx); break;
       default: html = UI.dashboard(ctx);
     }
     main.innerHTML = html;
@@ -133,6 +135,7 @@
 
   function go(view) {
     ctx.view = view;
+    if (view === 'admin' && !ctx.adminUtenti) caricaUtentiAdmin();
     if (view === 'turni' && !ctx.turniMonth) ctx.turniMonth = Calc.today();
     if (view === 'statistiche' && !ctx.statsYear) ctx.statsYear = Calc.fromISO(Calc.today()).getFullYear();
     if (view !== 'benessere') ctx.quizOpen = false;
@@ -440,6 +443,86 @@
         render();
         break;
 
+      /* --- amministrazione --- */
+      case 'admin-ricarica':
+        caricaUtentiAdmin();
+        break;
+
+      case 'admin-apri':
+        ctx.adminDati = null;
+        render();
+        Admin.dati(el.dataset.utente).then(function (d) {
+          ctx.adminDati = d;
+          render();
+        }).catch(erroreAdmin);
+        break;
+
+      case 'admin-chiudi':
+        ctx.adminDati = null;
+        render();
+        break;
+
+      case 'admin-salva-turno': {
+        var tr = el.closest('tr');
+        var turno = { id: tr.dataset.riga, user_id: ctx.adminDati.userId };
+        tr.querySelectorAll('[data-campo]').forEach(function (c) {
+          turno[c.dataset.campo] = c.dataset.campo === 'break_min' ? (parseInt(c.value, 10) || 0) : c.value;
+        });
+        Admin.salva('shifts', turno)
+          .then(function () { toast('Turno aggiornato.'); return ricaricaDatiAdmin(); })
+          .catch(erroreAdmin);
+        break;
+      }
+
+      case 'admin-elimina-turno': {
+        var tr2 = el.closest('tr');
+        if (!global.confirm(T('Eliminare definitivamente questo turno? Non è una cancellazione sincronizzabile: la riga sparisce dal server.'))) break;
+        Admin.elimina('shifts', tr2.dataset.riga)
+          .then(function () { toast('Turno eliminato.'); return ricaricaDatiAdmin(); })
+          .catch(erroreAdmin);
+        break;
+      }
+
+      case 'admin-nuovo-turno':
+        Admin.salva('shifts', {
+          id: 'adm-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+          user_id: ctx.adminDati.userId,
+          date: Calc.today(), start_time: '09:00', end_time: '18:00', break_min: 60, tipo: 'lavoro', note: ''
+        }).then(function () { toast('Turno salvato.'); return ricaricaDatiAdmin(); }).catch(erroreAdmin);
+        break;
+
+      case 'admin-elimina-checkin':
+        if (!global.confirm(T('Eliminare definitivamente questo check-in?'))) break;
+        Admin.elimina('checkins', el.dataset.id)
+          .then(function () { toast('Check-in eliminato.'); return ricaricaDatiAdmin(); })
+          .catch(erroreAdmin);
+        break;
+
+      case 'admin-salva-settings': {
+        var dati = leggiJson('admin-settings');
+        if (dati === undefined) break;
+        Admin.salva('settings', { user_id: ctx.adminDati.userId, data: dati })
+          .then(function () { toast('Impostazione aggiornata.'); return ricaricaDatiAdmin(); })
+          .catch(erroreAdmin);
+        break;
+      }
+
+      case 'admin-salva-punch': {
+        var p2 = leggiJson('admin-punch');
+        if (p2 === undefined) break;
+        Admin.salva('punches', { user_id: ctx.adminDati.userId, punch: p2 })
+          .then(function () { toast('Timbratura aggiornata.'); return ricaricaDatiAdmin(); })
+          .catch(erroreAdmin);
+        break;
+      }
+
+      case 'admin-azzera-punch':
+        if (!global.confirm(T('Azzerare la timbratura in corso di questo utente?'))) break;
+        Admin.salva('punches', { user_id: ctx.adminDati.userId, punch: null })
+          .then(function () { toast('Timbratura annullata.'); return ricaricaDatiAdmin(); })
+          .catch(erroreAdmin);
+        break;
+
       /* --- landing --- */
       case 'theme-toggle':
         cambiaTema();
@@ -640,6 +723,63 @@
     if (det) { det.innerHTML = UI.punchDetail(p, t, Calc.expectedEnd(p, st, Math.max(0, target - giorno.worked))); I18n.traduciDOM(det); }
   }
 
+  /* ---------------- amministrazione ---------------- */
+
+  function erroreAdmin(err) {
+    ctx.adminErrore = String(err && err.message || err);
+    render();
+  }
+
+  function leggiJson(id) {
+    var el = document.getElementById(id);
+    if (!el) return undefined;
+    var testo = el.value.trim();
+    if (!testo) return null;
+    try {
+      return JSON.parse(testo);
+    } catch (e) {
+      // Salvare un JSON malformato sostituirebbe dati validi con niente.
+      toast(T('JSON non valido: {motivo}', { motivo: e.message }), 4500);
+      return undefined;
+    }
+  }
+
+  function caricaUtentiAdmin() {
+    ctx.adminUtenti = null;
+    ctx.adminErrore = null;
+    render();
+    return Admin.utenti().then(function (u) {
+      ctx.adminUtenti = u;
+      render();
+    }).catch(erroreAdmin);
+  }
+
+  function ricaricaDatiAdmin() {
+    if (!ctx.adminDati) return Promise.resolve();
+    return Admin.dati(ctx.adminDati.userId).then(function (d) {
+      ctx.adminDati = d;
+      render();
+    }).catch(erroreAdmin);
+  }
+
+  /* La scheda compare solo se il server conferma. Il controllo che conta è
+     nelle policy del database: qui si evita di mostrare una scheda che
+     risponderebbe vuota. */
+  function aggiornaSchedaAdmin() {
+    var tab = document.getElementById('tab-admin');
+    if (!tab) return;
+    if (!global.Cloud || !global.Cloud.connesso()) {
+      tab.classList.add('hidden');
+      if (ctx.view === 'admin') go('dashboard');
+      return;
+    }
+    Admin.verifica().then(function (ok) {
+      tab.classList.toggle('hidden', !ok);
+      if (!ok && ctx.view === 'admin') go('dashboard');
+      else if (ok && ctx.view === 'admin' && !ctx.adminUtenti) caricaUtentiAdmin();
+    });
+  }
+
   /* ---------------- accesso ---------------- */
 
   /* Se le librerie non sono mai arrivate, il primo clic è un nuovo tentativo:
@@ -683,7 +823,8 @@
       turni: T('Turni'),
       statistiche: T('Statistiche'),
       benessere: T('Benessere'),
-      impostazioni: T('Impostazioni')
+      impostazioni: T('Impostazioni'),
+      admin: T('Amministrazione')
     };
     document.querySelectorAll('.tab').forEach(function (t) {
       var testo = etichette[t.dataset.view];
@@ -783,8 +924,10 @@
       global.Cloud.onChange(function () {
         if (global.Cloud.connesso()) segnaAccesso();
         renderGate();
+        aggiornaSchedaAdmin();
       });
       renderGate();
+      aggiornaSchedaAdmin();
     }, 300);
     setTimeout(function () { clearInterval(attesaCloud); }, 15000);
 

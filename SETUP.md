@@ -42,19 +42,28 @@ passando in produzione andranno registrate le app presso Google, Apple e Meta.
 > richiede anche *Sign in with Apple*. Qui è offerto tramite browser: se in revisione
 > chiedessero l'integrazione nativa, serve `expo-apple-authentication`.
 
-### ⚠️ Disattiva il campo *Username* — da fare tu
+### Il campo *Username* resta attivo
 
-Nel pannello Clerk, **User & Authentication → Username**, la voce risulta **attiva e
-obbligatoria**. Percentage non usa nomi utente da nessuna parte, ma Clerk non può creare
-l'account senza: entrando con Google la registrazione si ferma su *"Fill in missing
-fields"* e chiede di inventarne uno.
+Nel pannello Clerk lo username è **attivo e obbligatorio**, e va bene così: entrambi i
+client ora lo chiedono come ultimo passo della registrazione. Sul sito lo chiede la
+finestra di Clerk; sull'app c'è una schermata dedicata, che compare sia dopo il codice
+via email sia dopo l'accesso con Google, Apple o Facebook.
 
-Mettila su **off** (oppure *opzionale*). Fatto questo, l'accesso con Google, Apple o
-Facebook si conclude in un passaggio solo.
+### ⚠️ Aggiungi l'email al token di Clerk — da fare tu
 
-Finché resta attiva: sul sito il campo viene chiesto dentro la finestra di Clerk, e
-sull'app la registrazione non può concludersi — la schermata di accesso lo dice
-esplicitamente invece di lasciar credere a un codice sbagliato.
+Serve alla pagina di amministrazione: il server riconosce l'amministratore dall'email
+contenuta nel token, e Clerk **non la include di default**.
+
+Pannello Clerk → **Sessions → Customize session token**, e aggiungi al JSON:
+
+```json
+{ "email": "{{user.primary_email_address}}" }
+```
+
+Senza questo passaggio la scheda **Admin** non compare, e la spiegazione del perché è
+scritta nella pagina stessa. Non è un ripiego: se il token non porta l'email, il database
+non ha modo di sapere chi sei, e concedere l'accesso sulla base di un controllo fatto nel
+browser sarebbe una finta serratura.
 
 ### 2b. Chiave inserita ✅
 
@@ -93,6 +102,21 @@ di autorizzazione, mentre app e sito continuano a funzionare in locale.
 > progetto Supabase con Clerk, è deprecato da aprile 2025: condividere quel segreto è una
 > cattiva pratica e ruotarlo comporta disservizi. La procedura sopra usa la verifica a
 > chiave asimmetrica, che non richiede segreti condivisi.
+
+### Amministrazione
+
+`donatotaucci@gmail.com` è registrato come amministratore nella tabella `admins` del
+database. Dopo aver aggiunto il claim `email`, entrando con quell'indirizzo compare la
+scheda **Admin**, da cui si vedono e si modificano turni, check-in, impostazioni e
+timbrature di **tutti** gli utenti.
+
+Il permesso sta nelle policy per riga, non nel browser: chi non è amministratore, anche
+forzando l'interfaccia, continua a ricevere dal server soltanto le proprie righe.
+Verificato sul database simulando i token — un utente qualunque vede 1 riga su 2 e non
+riesce a modificare quella altrui; l'amministratore le vede entrambe e può modificarle.
+
+Per aggiungere o togliere amministratori si usa la tabella `admins` dal pannello
+Supabase. Di proposito nessuno può promuoversi dall'applicazione.
 
 ### Come verificare che funzioni
 

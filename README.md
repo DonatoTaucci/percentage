@@ -73,6 +73,16 @@ il collegamento fra Clerk e Supabase).
 - Riepilogo mensile dell'anno con ore lavorate, previste, percentuale, straordinari e saldo.
 - Distribuzione delle ore medie per giorno della settimana.
 
+**Amministrazione** (solo sito)
+- Scheda visibile agli amministratori, elencati nella tabella `admins` del database.
+- Elenco degli utenti con numero di turni, check-in, timbratura in corso e ultima attività.
+- Per ciascuno: turni modificabili riga per riga, check-in eliminabili, impostazioni e
+  timbratura come JSON.
+- L'autorizzazione è nelle policy per riga del database, non nel browser: nascondere una
+  scheda non impedisce di chiamare l'API, quindi il controllo che conta è sul server.
+- Gli amministratori si aggiungono solo dal pannello Supabase: dall'applicazione nessuno
+  può promuoversi.
+
 **Lingua** (solo sito)
 - Interfaccia in italiano, inglese, spagnolo, francese e tedesco, dal selettore in alto.
 - Alla prima visita viene proposta la lingua del browser, se fra quelle disponibili.

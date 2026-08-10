@@ -15,7 +15,7 @@ import { S, R } from '../src/ui/theme';
 // Chiude la scheda del browser rimasta aperta quando si torna nell'app.
 WebBrowser.maybeCompleteAuthSession();
 
-type Fase = 'email' | 'codice';
+type Fase = 'email' | 'codice' | 'username';
 type Provider = 'oauth_google' | 'oauth_apple' | 'oauth_facebook';
 
 export default function Accedi() {
@@ -31,6 +31,10 @@ export default function Accedi() {
   const [errore, setErrore] = useState<string | null>(null);
   const [attesa, setAttesa] = useState(false);
   const [ssoInCorso, setSsoInCorso] = useState<Provider | null>(null);
+  const [username, setUsername] = useState('');
+  // setActive del flusso social: serve per chiudere la registrazione dopo
+  // aver raccolto lo username, e non è quello di useSignUp().
+  const [chiudiSSO, setChiudiSSO] = useState<null | ((o: { session: string }) => Promise<unknown>)>(null);
 
   const pronto = signInPronto && signUpPronto;
 
@@ -54,8 +58,16 @@ export default function Accedi() {
       if (createdSessionId && setActive) {
         await setActive({ session: createdSessionId });
       } else if (iscrizione?.status === 'missing_requirements') {
-        // L'account non è stato creato perché Clerk chiede altri campi.
-        setErrore(mancanti(iscrizione.missingFields));
+        // Google ha dato l'identità, ma Clerk vuole ancora qualcosa: di
+        // norma lo username. Lo chiediamo qui invece di mandare l'utente
+        // sul portale di Clerk a finire la registrazione altrove.
+        if (iscrizione.missingFields.includes('username')) {
+          setChiudiSSO(() => setActive ?? null);
+          setUsername('');
+          setFase('username');
+        } else {
+          setErrore(mancanti(iscrizione.missingFields));
+        }
       }
       // Senza sessione e senza campi mancanti l'utente ha semplicemente
       // chiuso la finestra: non è un errore da mostrare.
@@ -124,11 +136,33 @@ export default function Accedi() {
       if (nuovoAccount) {
         const res = await signUp!.attemptEmailAddressVerification({ code: codice.trim() });
         if (res.status === 'complete') await setActiveSignUp!({ session: res.createdSessionId });
+        else if (res.missingFields.includes('username')) { setUsername(''); setFase('username'); }
         else setErrore(mancanti(res.missingFields));
       } else {
         const res = await signIn!.attemptFirstFactor({ strategy: 'email_code', code: codice.trim() });
         if (res.status === 'complete') await setActiveSignIn!({ session: res.createdSessionId });
         else setErrore('Verifica non completata. Controlla il codice.');
+      }
+    } catch (err: any) {
+      setErrore(messaggio(err));
+    }
+    setAttesa(false);
+  }
+
+  /* Ultimo passo della registrazione. Clerk tiene aperto il tentativo:
+     basta completarlo con il campo mancante. */
+  async function salvaUsername() {
+    const scelto = username.trim();
+    if (scelto.length < 3) { setErrore('Scegli un nome utente di almeno 3 caratteri.'); return; }
+    setAttesa(true);
+    setErrore(null);
+    try {
+      const res = await signUp!.update({ username: scelto });
+      if (res.status === 'complete') {
+        const chiudi = chiudiSSO ?? setActiveSignUp!;
+        await chiudi({ session: res.createdSessionId! });
+      } else {
+        setErrore(mancanti(res.missingFields));
       }
     } catch (err: any) {
       setErrore(messaggio(err));
@@ -150,7 +184,24 @@ export default function Accedi() {
         </View>
 
         <Card>
-          {fase === 'email' ? (
+          {fase === 'username' ? (
+            <View style={{ gap: S.md }}>
+              <Txt size={17} weight="700">Scegli un nome utente</Txt>
+              <Txt dim size={13}>
+                Manca solo questo. È il nome con cui il tuo account viene identificato:
+                puoi cambiarlo in seguito dal tuo profilo.
+              </Txt>
+              <Campo
+                label="Nome utente"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                placeholder="mario.rossi"
+              />
+              {!!errore && <Nota tone="bad">{errore}</Nota>}
+              <Btn title={attesa ? 'Salvo…' : 'Completa la registrazione'} variante="primario" onPress={salvaUsername} disabled={attesa || !pronto} />
+            </View>
+          ) : fase === 'email' ? (
             <View style={{ gap: S.md }}>
               <Txt size={17} weight="700">Accedi</Txt>
 

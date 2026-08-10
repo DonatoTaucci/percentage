@@ -341,3 +341,41 @@ Object.assign(window.I18N.es, {
   "Il tuo ritmo di riposo ({0} giorni liberi in {1} settimane, media di {2} h/settimana) è un fattore protettivo reale. Proteggilo mentre lavori sugli altri punti.": "Tu ritmo de descanso ({0} días libres en {1} semanas, media de {2} h/semana) es un factor protector real. Cuídalo mientras trabajas en los demás puntos.",
   "Un elemento che funziona": "Algo que funciona"
 });
+
+/* Página de administración. */
+Object.assign(window.I18N.es, {
+  "Accesso non consentito.": "Acceso no permitido.",
+  "Amministrazione": "Administración",
+  "aperta": "abierto",
+  "Attenzione.": "Atención.",
+  "Azzera timbratura": "Borrar fichaje",
+  "Azzerare la timbratura in corso di questo utente?": "¿Borrar el fichaje en curso de este usuario?",
+  "Check-in": "Check-ins",
+  "Check-in ({0})": "Check-ins ({0})",
+  "Check-in eliminato.": "Check-in eliminado.",
+  "Chiudi": "Cerrar",
+  "Da qui vedi e modifichi i dati di tutti gli utenti. Le modifiche sono immediate e vengono scaricate dai loro dispositivi alla sincronizzazione successiva. La cancellazione è definitiva.": "Desde aquí ves y modificas los datos de todos los usuarios. Los cambios son inmediatos y sus dispositivos los descargan en la siguiente sincronización. El borrado es definitivo.",
+  "Dati di": "Datos de",
+  "Eliminare definitivamente questo check-in?": "¿Eliminar definitivamente este check-in?",
+  "Eliminare definitivamente questo turno? Non è una cancellazione sincronizzabile: la riga sparisce dal server.": "¿Eliminar definitivamente este turno? No es un borrado sincronizable: la fila desaparece del servidor.",
+  "eliminato": "eliminado",
+  "JSON non valido: {motivo}": "JSON no válido: {motivo}",
+  "Le email non sono nel database: le tiene Clerk. Qui compare l'identificativo utente di Clerk, che è ciò a cui le righe sono collegate.": "Los correos no están en la base de datos: los guarda Clerk. Aquí aparece el identificador de usuario de Clerk, que es a lo que están vinculadas las filas.",
+  "Livello": "Nivel",
+  "Nessun check-in.": "Ningún check-in.",
+  "Nessun turno.": "Ningún turno.",
+  "Nessun utente ha ancora sincronizzato dati.": "Ningún usuario ha sincronizado datos todavía.",
+  "Punteggio": "Puntuación",
+  "Ricarica": "Recargar",
+  "Serve l'accesso.": "Hace falta iniciar sesión.",
+  "Timbratura": "Fichaje",
+  "Timbratura aggiornata.": "Fichaje actualizado.",
+  "tu": "tú",
+  "Turni ({0})": "Turnos ({0})",
+  "Turno aggiornato.": "Turno actualizado.",
+  "Turno salvato.": "Turno guardado.",
+  "Tutti gli utenti e i loro dati": "Todos los usuarios y sus datos",
+  "Ultima attività": "Última actividad",
+  "Utente": "Usuario",
+  "Utenti": "Usuarios"
+});

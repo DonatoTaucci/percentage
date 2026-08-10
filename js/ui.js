@@ -926,6 +926,153 @@
   /* =========================================================
      IMPOSTAZIONI
      ========================================================= */
+
+  /* =========================================================
+     AMMINISTRAZIONE — visibile solo a chi il server riconosce
+     come amministratore. Il filtro vero è nelle policy del
+     database: qui si evita soltanto di mostrare una scheda
+     che risponderebbe vuota.
+     ========================================================= */
+
+  function jsonArea(id, valore, righe) {
+    return '<textarea id="' + id + '" rows="' + (righe || 8) + '" spellcheck="false" ' +
+      'style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px">' +
+      esc(JSON.stringify(valore === null || valore === undefined ? {} : valore, null, 2)) +
+      '</textarea>';
+  }
+
+  function rigaTurnoAdmin(t) {
+    var tipi = Object.keys(Calc.TIPI).map(function (k) {
+      return '<option value="' + k + '"' + (t.tipo === k ? ' selected' : '') + '>' + esc(Calc.TIPI[k].label) + '</option>';
+    }).join('');
+    return '<tr data-riga="' + esc(t.id) + '"' + (t.deleted_at ? ' style="opacity:.5"' : '') + '>' +
+      '<td><input type="date" data-campo="date" value="' + esc(t.date || '') + '"></td>' +
+      '<td><input type="time" data-campo="start_time" value="' + esc(t.start_time || '') + '"></td>' +
+      '<td><input type="time" data-campo="end_time" value="' + esc(t.end_time || '') + '"></td>' +
+      '<td><input type="number" min="0" step="5" data-campo="break_min" value="' + esc(t.break_min || 0) + '" style="max-width:80px"></td>' +
+      '<td><select data-campo="tipo">' + tipi + '</select></td>' +
+      '<td><input type="text" data-campo="note" value="' + esc(t.note || '') + '" maxlength="400"></td>' +
+      '<td class="tiny muted">' + (t.deleted_at ? esc(T('eliminato')) : '') + '</td>' +
+      '<td style="white-space:nowrap">' +
+        '<button class="btn sm" data-action="admin-salva-turno">' + esc(T('Salva')) + '</button> ' +
+        '<button class="btn sm danger" data-action="admin-elimina-turno">' + esc(T('Elimina')) + '</button>' +
+      '</td></tr>';
+  }
+
+  function amministrazione(ctx) {
+    var st = Admin.stato();
+    var html = '';
+
+    if (!st.admin) {
+      html += '<div class="card"><div class="card-title">' + esc(T('Amministrazione')) + '</div>';
+      html += '<div class="note">' + esc(Admin.diagnosi() || T('Accesso non consentito.')) + '</div>';
+      html += '</div>';
+      return html;
+    }
+
+    html += '<div class="note">' +
+      '<strong>' + esc(T('Attenzione.')) + '</strong> ' +
+      esc(T('Da qui vedi e modifichi i dati di tutti gli utenti. Le modifiche sono immediate e vengono scaricate dai loro dispositivi alla sincronizzazione successiva. La cancellazione è definitiva.')) +
+      '</div>';
+
+    /* elenco utenti */
+    html += '<div class="card" style="margin-top:14px">';
+    html += '<div class="row-between"><div class="card-title" style="margin:0">' + esc(T('Utenti')) + '</div>' +
+      '<button class="btn sm" data-action="admin-ricarica">' + esc(T('Ricarica')) + '</button></div>';
+
+    if (ctx.adminErrore) {
+      html += '<div class="note" style="margin-top:12px;border-color:var(--bad)">' + esc(ctx.adminErrore) + '</div>';
+    }
+
+    var utenti = ctx.adminUtenti;
+    if (!utenti) {
+      html += '<p class="muted small" style="margin:12px 0 0">' + esc(T('Caricamento…')) + '</p>';
+    } else if (utenti.length === 0) {
+      html += '<p class="muted small" style="margin:12px 0 0">' + esc(T('Nessun utente ha ancora sincronizzato dati.')) + '</p>';
+    } else {
+      html += '<div class="table-wrap" style="margin-top:12px"><table><thead><tr>' +
+        '<th>' + esc(T('Utente')) + '</th><th>' + esc(T('Turni')) + '</th><th>' + esc(T('Check-in')) + '</th>' +
+        '<th>' + esc(T('Timbratura')) + '</th><th>' + esc(T('Ultima attività')) + '</th><th></th>' +
+        '</tr></thead><tbody>';
+      utenti.forEach(function (u) {
+        var mio = global.Cloud && global.Cloud.stato().utente && global.Cloud.stato().utente.id === u.user_id;
+        html += '<tr>' +
+          '<td><code style="font-size:12px">' + esc(u.user_id) + '</code>' +
+            (mio ? ' <span class="badge info">' + esc(T('tu')) + '</span>' : '') + '</td>' +
+          '<td>' + u.turni + '</td><td>' + u.checkin + '</td>' +
+          '<td>' + (u.timbratura_aperta ? esc(T('aperta')) : '—') + '</td>' +
+          '<td class="tiny muted">' + esc(new Date(u.ultima_attivita).toLocaleString(I18n.lingua())) + '</td>' +
+          '<td><button class="btn sm" data-action="admin-apri" data-utente="' + esc(u.user_id) + '">' + esc(T('Apri')) + '</button></td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div>';
+      html += '<p class="tiny muted" style="margin:12px 0 0">' +
+        esc(T('Le email non sono nel database: le tiene Clerk. Qui compare l\'identificativo utente di Clerk, che è ciò a cui le righe sono collegate.')) +
+        '</p>';
+    }
+    html += '</div>';
+
+    /* dettaglio di un utente */
+    var d = ctx.adminDati;
+    if (!d) return html;
+
+    html += '<div class="row-between" style="margin:26px 0 12px">' +
+      '<h2 style="margin:0;font-size:17px">' + esc(T('Dati di')) + ' <code style="font-size:13px">' + esc(d.userId) + '</code></h2>' +
+      '<button class="btn sm" data-action="admin-chiudi">' + esc(T('Chiudi')) + '</button></div>';
+
+    /* turni */
+    html += '<div class="card"><div class="row-between"><div class="card-title" style="margin:0">' +
+      esc(T('Turni')) + ' (' + d.shifts.length + ')</div>' +
+      '<button class="btn sm primary" data-action="admin-nuovo-turno">' + esc(T('+ Nuovo turno')) + '</button></div>';
+    if (d.shifts.length === 0) {
+      html += '<p class="muted small" style="margin:12px 0 0">' + esc(T('Nessun turno.')) + '</p>';
+    } else {
+      html += '<div class="table-wrap" style="margin-top:12px"><table><thead><tr>' +
+        '<th>' + esc(T('Data')) + '</th><th>' + esc(T('Inizio')) + '</th><th>' + esc(T('Fine')) + '</th>' +
+        '<th>' + esc(T('Pausa (min)')) + '</th><th>' + esc(T('Tipo di giornata')) + '</th><th>' + esc(T('Note (facoltative)')) + '</th>' +
+        '<th></th><th></th></tr></thead><tbody>';
+      d.shifts.forEach(function (t) { html += rigaTurnoAdmin(t); });
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+
+    /* check-in */
+    html += '<div class="card" style="margin-top:14px"><div class="card-title">' +
+      esc(T('Check-in')) + ' (' + d.checkins.length + ')</div>';
+    if (d.checkins.length === 0) {
+      html += '<p class="muted small">' + esc(T('Nessun check-in.')) + '</p>';
+    } else {
+      html += '<div class="table-wrap"><table><thead><tr>' +
+        '<th>' + esc(T('Data')) + '</th><th>' + esc(T('Punteggio')) + '</th><th>' + esc(T('Livello')) + '</th><th></th>' +
+        '</tr></thead><tbody>';
+      d.checkins.forEach(function (c) {
+        html += '<tr' + (c.deleted_at ? ' style="opacity:.5"' : '') + '>' +
+          '<td class="tiny">' + esc(new Date(Number(c.ts)).toLocaleString(I18n.lingua())) + '</td>' +
+          '<td>' + esc(c.score) + '</td><td data-no-i18n>' + esc(c.level || '') + '</td>' +
+          '<td><button class="btn sm danger" data-action="admin-elimina-checkin" data-id="' + esc(c.id) + '">' + esc(T('Elimina')) + '</button></td>' +
+          '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '</div>';
+
+    /* impostazioni e timbratura, come JSON: sono documenti liberi, e un
+       modulo con un campo per chiave mentirebbe sulla loro forma */
+    html += '<div class="card" style="margin-top:14px"><div class="card-title">' + esc(T('Impostazioni')) + '</div>';
+    html += jsonArea('admin-settings', d.settings ? d.settings.data : {}, 12);
+    html += '<div class="row" style="margin-top:10px"><button class="btn sm primary" data-action="admin-salva-settings">' +
+      esc(T('Salva')) + '</button></div></div>';
+
+    html += '<div class="card" style="margin-top:14px"><div class="card-title">' + esc(T('Timbratura')) + '</div>';
+    html += jsonArea('admin-punch', d.punch ? d.punch.punch : null, 8);
+    html += '<div class="row" style="margin-top:10px">' +
+      '<button class="btn sm primary" data-action="admin-salva-punch">' + esc(T('Salva')) + '</button>' +
+      '<button class="btn sm danger" data-action="admin-azzera-punch">' + esc(T('Azzera timbratura')) + '</button>' +
+      '</div></div>';
+
+    return html;
+  }
+
   function impostazioni(ctx) {
     ctx = ctx || {};
     var s = Store.settings();
@@ -1098,6 +1245,7 @@
 
   global.UI = {
     esc: esc,
+    amministrazione: amministrazione,
     landing: landing,
     selettoreLingua: selettoreLingua,
     fmtClock: fmtClock,

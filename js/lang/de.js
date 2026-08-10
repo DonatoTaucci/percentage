@@ -337,3 +337,41 @@ Object.assign(window.I18N.de, {
   "Verifica se esistono sportelli di ascolto, RSU o medico competente: sono canali già previsti e spesso poco usati.": "Prüfe, ob es eine Anlaufstelle, einen Betriebsrat oder eine Betriebsärztin gibt: Diese Wege sind längst vorgesehen und werden oft kaum genutzt.",
   "Verifico…": "Wird geprüft …"
 });
+
+/* Verwaltungsseite. */
+Object.assign(window.I18N.de, {
+  "Accesso non consentito.": "Zugriff nicht erlaubt.",
+  "Amministrazione": "Verwaltung",
+  "aperta": "offen",
+  "Attenzione.": "Achtung.",
+  "Azzera timbratura": "Stempelung zurücksetzen",
+  "Azzerare la timbratura in corso di questo utente?": "Die laufende Stempelung dieser Person zurücksetzen?",
+  "Check-in": "Check-ins",
+  "Check-in ({0})": "Check-ins ({0})",
+  "Check-in eliminato.": "Check-in gelöscht.",
+  "Chiudi": "Schließen",
+  "Da qui vedi e modifichi i dati di tutti gli utenti. Le modifiche sono immediate e vengono scaricate dai loro dispositivi alla sincronizzazione successiva. La cancellazione è definitiva.": "Von hier aus siehst und änderst du die Daten aller Nutzerinnen und Nutzer. Änderungen wirken sofort und werden bei der nächsten Synchronisierung auf deren Geräte geladen. Löschen ist endgültig.",
+  "Dati di": "Daten von",
+  "Eliminare definitivamente questo check-in?": "Diesen Check-in endgültig löschen?",
+  "Eliminare definitivamente questo turno? Non è una cancellazione sincronizzabile: la riga sparisce dal server.": "Diese Schicht endgültig löschen? Das ist keine synchronisierbare Löschung: Die Zeile verschwindet vom Server.",
+  "eliminato": "gelöscht",
+  "JSON non valido: {motivo}": "Ungültiges JSON: {motivo}",
+  "Le email non sono nel database: le tiene Clerk. Qui compare l'identificativo utente di Clerk, che è ciò a cui le righe sono collegate.": "Die E-Mail-Adressen stehen nicht in der Datenbank, sondern bei Clerk. Hier siehst du die Clerk-Nutzerkennung, mit der die Zeilen tatsächlich verknüpft sind.",
+  "Livello": "Stufe",
+  "Nessun check-in.": "Keine Check-ins.",
+  "Nessun turno.": "Keine Schichten.",
+  "Nessun utente ha ancora sincronizzato dati.": "Noch niemand hat Daten synchronisiert.",
+  "Punteggio": "Punktzahl",
+  "Ricarica": "Neu laden",
+  "Serve l'accesso.": "Anmeldung erforderlich.",
+  "Timbratura": "Stempelung",
+  "Timbratura aggiornata.": "Stempelung aktualisiert.",
+  "tu": "du",
+  "Turni ({0})": "Schichten ({0})",
+  "Turno aggiornato.": "Schicht aktualisiert.",
+  "Turno salvato.": "Schicht gespeichert.",
+  "Tutti gli utenti e i loro dati": "Alle Nutzer und ihre Daten",
+  "Ultima attività": "Letzte Aktivität",
+  "Utente": "Nutzer",
+  "Utenti": "Nutzer"
+});
