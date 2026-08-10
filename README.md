@@ -75,7 +75,11 @@ il collegamento fra Clerk e Supabase).
 
 **Amministrazione** (solo sito)
 - Scheda visibile agli amministratori, elencati nella tabella `admins` del database.
-- Elenco degli utenti con numero di turni, check-in, timbratura in corso e ultima attività.
+- Elenco degli utenti con email, nome utente, numero di turni, check-in, timbratura in corso
+  e ultima attività. L'anagrafica si popola all'accesso: gli account vivono su Clerk, e senza
+  una riga scritta al primo ingresso il database non saprebbe di chi si è registrato e basta.
+- L'email mostrata è quella contenuta nel token, riscritta dal server con un trigger: un
+  client può mentire su ciò che manda, non su come è firmato il proprio token.
 - Per ciascuno: turni modificabili riga per riga, check-in eliminabili, impostazioni e
   timbratura come JSON.
 - L'autorizzazione è nelle policy per riga del database, non nel browser: nascondere una

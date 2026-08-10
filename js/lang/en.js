@@ -387,3 +387,9 @@ Object.assign(window.I18N.en, {
 
 /* Registrazione esplicita. */
 Object.assign(window.I18N.en, { "Registrati": "Sign up" });
+
+/* Anagrafica degli account nella pagina admin. */
+Object.assign(window.I18N.en, {
+  "Nome utente": "Username",
+  "L'elenco si popola al primo accesso di ciascuno: chi si è registrato prima di questa modifica comparirà quando rientrerà. L'email è quella del token, non quella dichiarata dal client.": "The list fills up at each person's first sign-in: anyone who registered before this change will appear once they come back. The email comes from the token, not from what the client claims."
+});

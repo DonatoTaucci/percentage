@@ -384,3 +384,9 @@ Object.assign(window.I18N.fr, {
 
 /* Inscription explicite. */
 Object.assign(window.I18N.fr, { "Registrati": "S'inscrire" });
+
+/* Anagrafica degli account nella pagina admin. */
+Object.assign(window.I18N.fr, {
+  "Nome utente": "Nom d'utilisateur",
+  "L'elenco si popola al primo accesso di ciascuno: chi si è registrato prima di questa modifica comparirà quando rientrerà. L'email è quella del token, non quella dichiarata dal client.": "La liste se remplit à la première connexion de chacun : qui s'est inscrit avant cette modification apparaîtra à son retour. L'adresse e-mail vient du jeton, pas de ce que déclare le client."
+});

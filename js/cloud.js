@@ -133,11 +133,17 @@ async function init() {
       const prima = stato.utente?.id ?? null;
       stato.utente = user ? riassuntoUtente(user) : null;
       notifica();
-      if (stato.utente && stato.utente.id !== prima) sincronizza(true);
+      if (stato.utente && stato.utente.id !== prima) {
+        registraProfilo();
+        sincronizza(true);
+      }
     });
 
     notifica();
-    if (stato.utente) sincronizza(true);
+    if (stato.utente) {
+      registraProfilo();
+      sincronizza(true);
+    }
   } catch (err) {
     stato.errore = 'Servizio di accesso non raggiungibile: l\'app resta utilizzabile in locale.';
     stato.motivo = 'irraggiungibile';
@@ -166,8 +172,29 @@ function riprova() {
 function riassuntoUtente(u) {
   return {
     id: u.id,
-    email: u.primaryEmailAddress?.emailAddress || u.emailAddresses?.[0]?.emailAddress || ''
+    email: u.primaryEmailAddress?.emailAddress || u.emailAddresses?.[0]?.emailAddress || '',
+    username: u.username || ''
   };
+}
+
+/* Registra l'account nel database appena si entra.
+
+   Gli account stanno su Clerk: senza questa riga il server verrebbe a sapere
+   di una persona solo quando sincronizza il primo turno, e chi si registra
+   senza usare l'applicazione resterebbe invisibile alla pagina di
+   amministrazione. Email e id li riscrive il server leggendoli dal token:
+   quello che mandiamo qui è solo il nome utente. */
+async function registraProfilo() {
+  if (!stato.supabase || !stato.utente) return;
+  try {
+    await stato.supabase.from('profili').upsert({
+      user_id: stato.utente.id,
+      username: stato.utente.username || '',
+      ultimo_accesso: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  } catch (err) {
+    // Non è un motivo per impedire l'uso dell'applicazione.
+  }
 }
 
 /* ---------------- accesso ---------------- */

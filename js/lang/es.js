@@ -388,3 +388,9 @@ Object.assign(window.I18N.es, {
 
 /* Registro explícito. */
 Object.assign(window.I18N.es, { "Registrati": "Regístrate" });
+
+/* Anagrafica degli account nella pagina admin. */
+Object.assign(window.I18N.es, {
+  "Nome utente": "Nombre de usuario",
+  "L'elenco si popola al primo accesso di ciascuno: chi si è registrato prima di questa modifica comparirà quando rientrerà. L'email è quella del token, non quella dichiarata dal client.": "La lista se llena con el primer acceso de cada persona: quien se registró antes de este cambio aparecerá cuando vuelva a entrar. El correo procede del token, no de lo que declara el cliente."
+});

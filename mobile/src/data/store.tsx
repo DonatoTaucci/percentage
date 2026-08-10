@@ -4,7 +4,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth, useUser } from '@clerk/clerk-expo';
 
 import { AppData, Checkin, Settings, Shift } from '../core/types';
 import { deriveOrario } from '../core/calc';
@@ -14,7 +14,7 @@ import {
   SyncState, EMPTY_SYNC, clearAll,
   markShiftDirty, markShiftDeleted, markCheckinDirty, markCheckinDeleted,
 } from './storage';
-import { syncNow, resetClient } from './sync';
+import { syncNow, resetClient, registraProfilo } from './sync';
 import { SINCRONIZZAZIONE_DISPONIBILE } from '../config';
 import * as Geo from '../services/geofencing';
 
@@ -46,6 +46,7 @@ export function useApp(): Ctx {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const { isSignedIn, getToken, userId } = useAuth();
+  const { user } = useUser();
   const [data, setData] = useState<AppData>(emptyData);
   const [sync, setSync] = useState<SyncState>(EMPTY_SYNC);
   const [pronto, setPronto] = useState(false);
@@ -86,6 +87,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sincronizza = useCallback(async (silenzioso = false): Promise<string | null> => {
     if (!SINCRONIZZAZIONE_DISPONIBILE || !isSignedIn) return null;
     if (!silenzioso) setSincronizzando(true);
+    // Prima l'anagrafica: chi si registra e non tocca nulla deve comunque
+    // risultare al server, altrimenti per l'amministrazione non esiste.
+    await registraProfilo(getToken, userId ?? '', user?.username ?? '');
     const res = await syncNow(dataRef.current, syncRef.current, getToken, 'mobile');
     if (!res.error) {
       setData(res.data);
@@ -98,7 +102,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await saveSync(res.sync);
     if (!silenzioso) setSincronizzando(false);
     return res.error;
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getToken, userId, user?.username]);
 
   // Alla connessione dell'account e a ogni ritorno in primo piano.
   useEffect(() => {

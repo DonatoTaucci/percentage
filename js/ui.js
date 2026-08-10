@@ -997,14 +997,19 @@
       html += '<p class="muted small" style="margin:12px 0 0">' + esc(T('Nessun utente ha ancora sincronizzato dati.')) + '</p>';
     } else {
       html += '<div class="table-wrap" style="margin-top:12px"><table><thead><tr>' +
-        '<th>' + esc(T('Utente')) + '</th><th>' + esc(T('Turni')) + '</th><th>' + esc(T('Check-in')) + '</th>' +
+        '<th>' + esc(T('Utente')) + '</th><th>' + esc(T('Nome utente')) + '</th>' +
+        '<th>' + esc(T('Turni')) + '</th><th>' + esc(T('Check-in')) + '</th>' +
         '<th>' + esc(T('Timbratura')) + '</th><th>' + esc(T('Ultima attività')) + '</th><th></th>' +
         '</tr></thead><tbody>';
       utenti.forEach(function (u) {
         var mio = global.Cloud && global.Cloud.stato().utente && global.Cloud.stato().utente.id === u.user_id;
         html += '<tr>' +
-          '<td><code style="font-size:12px">' + esc(u.user_id) + '</code>' +
-            (mio ? ' <span class="badge info">' + esc(T('tu')) + '</span>' : '') + '</td>' +
+          '<td>' + (u.email
+              ? '<span data-no-i18n>' + esc(u.email) + '</span>'
+              : '<code style="font-size:12px" data-no-i18n>' + esc(u.user_id) + '</code>') +
+            (mio ? ' <span class="badge info">' + esc(T('tu')) + '</span>' : '') +
+            (u.email ? '<br><code class="tiny muted" data-no-i18n>' + esc(u.user_id) + '</code>' : '') + '</td>' +
+          '<td data-no-i18n>' + esc(u.username || '—') + '</td>' +
           '<td>' + u.turni + '</td><td>' + u.checkin + '</td>' +
           '<td>' + (u.timbratura_aperta ? esc(T('aperta')) : '—') + '</td>' +
           '<td class="tiny muted">' + esc(new Date(u.ultima_attivita).toLocaleString(I18n.lingua())) + '</td>' +
@@ -1013,7 +1018,7 @@
       });
       html += '</tbody></table></div>';
       html += '<p class="tiny muted" style="margin:12px 0 0">' +
-        esc(T('Le email non sono nel database: le tiene Clerk. Qui compare l\'identificativo utente di Clerk, che è ciò a cui le righe sono collegate.')) +
+        esc(T('L\'elenco si popola al primo accesso di ciascuno: chi si è registrato prima di questa modifica comparirà quando rientrerà. L\'email è quella del token, non quella dichiarata dal client.')) +
         '</p>';
     }
     html += '</div>';

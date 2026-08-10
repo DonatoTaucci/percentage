@@ -91,6 +91,29 @@ export type SyncResult = {
   error: string | null;
 };
 
+/* Registra l'account nel database appena si entra.
+
+   Gli account stanno su Clerk: senza questa riga il server saprebbe di una
+   persona solo quando sincronizza il primo turno, e chi si registra senza
+   usare l'app resterebbe invisibile alla pagina di amministrazione. Email e
+   id li riscrive il server leggendoli dal token: da qui parte solo il nome
+   utente. Un errore non deve fermare la sincronizzazione. */
+export async function registraProfilo(
+  getToken: TokenGetter,
+  userId: string,
+  username: string
+): Promise<void> {
+  if (!isConfigured() || !userId) return;
+  try {
+    await getClient(getToken).from('profili').upsert(
+      { user_id: userId, username: username || '', ultimo_accesso: new Date().toISOString() },
+      { onConflict: 'user_id' }
+    );
+  } catch {
+    /* ignorato di proposito */
+  }
+}
+
 export async function syncNow(
   data: AppData,
   sync: SyncState,

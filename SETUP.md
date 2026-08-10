@@ -118,6 +118,11 @@ riesce a modificare quella altrui; l'amministratore le vede entrambe e può modi
 Per aggiungere o togliere amministratori si usa la tabella `admins` dal pannello
 Supabase. Di proposito nessuno può promuoversi dall'applicazione.
 
+L'elenco degli utenti viene dalla tabella `profili`, che ogni client scrive al proprio
+accesso: gli account stanno su Clerk, e il database non ne saprebbe nulla finché quella
+persona non sincronizza qualcosa. Chi si è registrato prima di questa modifica comparirà
+al primo rientro.
+
 ### Come verificare che funzioni
 
 1. Apri il sito, **Impostazioni → Account → Accedi**, inserisci la tua email e il codice.
