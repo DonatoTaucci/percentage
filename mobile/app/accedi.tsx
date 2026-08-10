@@ -46,16 +46,42 @@ export default function Accedi() {
     setSsoInCorso(strategy);
     setErrore(null);
     try {
-      const { createdSessionId, setActive } = await startSSOFlow({
+      // Rinominato: qui "signUp" ombreggerebbe quello di useSignUp().
+      const { createdSessionId, setActive, signUp: iscrizione } = await startSSOFlow({
         strategy,
         redirectUrl: AuthSession.makeRedirectUri(),
       });
-      // Senza sessione l'utente ha chiuso la finestra: non è un errore da mostrare.
-      if (createdSessionId && setActive) await setActive({ session: createdSessionId });
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+      } else if (iscrizione?.status === 'missing_requirements') {
+        // L'account non è stato creato perché Clerk chiede altri campi.
+        setErrore(mancanti(iscrizione.missingFields));
+      }
+      // Senza sessione e senza campi mancanti l'utente ha semplicemente
+      // chiuso la finestra: non è un errore da mostrare.
     } catch (err: any) {
       setErrore(messaggio(err));
     }
     setSsoInCorso(null);
+  }
+
+  /* Quando Clerk richiede campi che questa schermata non raccoglie (per
+     esempio lo username, se è attivo nel pannello), la registrazione resta
+     a metà. Dirlo con precisione: il messaggio generico faceva sospettare
+     un codice sbagliato, mandando a ricontrollare la cosa giusta nel posto
+     sbagliato. */
+  function mancanti(campi?: string[]): string {
+    if (!campi || campi.length === 0) return 'Verifica non completata. Controlla il codice.';
+    const nomi: Record<string, string> = {
+      username: 'nome utente',
+      first_name: 'nome',
+      last_name: 'cognome',
+      password: 'password',
+      phone_number: 'numero di telefono',
+    };
+    const elenco = campi.map((c) => nomi[c] || c).join(', ');
+    return `Per completare la registrazione Clerk richiede: ${elenco}. ` +
+      'Disattiva quei campi nel pannello Clerk, oppure completala dal sito.';
   }
 
   function messaggio(err: any): string {
@@ -98,7 +124,7 @@ export default function Accedi() {
       if (nuovoAccount) {
         const res = await signUp!.attemptEmailAddressVerification({ code: codice.trim() });
         if (res.status === 'complete') await setActiveSignUp!({ session: res.createdSessionId });
-        else setErrore('Verifica non completata. Controlla il codice.');
+        else setErrore(mancanti(res.missingFields));
       } else {
         const res = await signIn!.attemptFirstFactor({ strategy: 'email_code', code: codice.trim() });
         if (res.status === 'complete') await setActiveSignIn!({ session: res.createdSessionId });

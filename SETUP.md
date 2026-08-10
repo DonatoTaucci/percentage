@@ -42,6 +42,20 @@ passando in produzione andranno registrate le app presso Google, Apple e Meta.
 > richiede anche *Sign in with Apple*. Qui è offerto tramite browser: se in revisione
 > chiedessero l'integrazione nativa, serve `expo-apple-authentication`.
 
+### ⚠️ Disattiva il campo *Username* — da fare tu
+
+Nel pannello Clerk, **User & Authentication → Username**, la voce risulta **attiva e
+obbligatoria**. Percentage non usa nomi utente da nessuna parte, ma Clerk non può creare
+l'account senza: entrando con Google la registrazione si ferma su *"Fill in missing
+fields"* e chiede di inventarne uno.
+
+Mettila su **off** (oppure *opzionale*). Fatto questo, l'accesso con Google, Apple o
+Facebook si conclude in un passaggio solo.
+
+Finché resta attiva: sul sito il campo viene chiesto dentro la finestra di Clerk, e
+sull'app la registrazione non può concludersi — la schermata di accesso lo dice
+esplicitamente invece di lasciar credere a un codice sbagliato.
+
 ### 2b. Chiave inserita ✅
 
 È già in `js/config.js` (sito). Per l'app sta in `mobile/.env`, che non è versionato:

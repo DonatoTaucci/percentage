@@ -147,14 +147,24 @@ function riassuntoUtente(u) {
 /* Si usa la finestra di Clerk, non un riquadro nostro.
 
    Montare il componente dentro un <dialog> nostro sembrava più integrato, ma
-   costringeva a inseguire con il CSS una card che ha misure proprie, e
-   soprattutto il collegamento "Sign up" portava l'utente fuori dal sito, sul
-   portale ospitato da Clerk. Con routing 'virtual' iscrizione e accesso
-   restano dentro la stessa finestra, che Clerk centra da sé. */
+   costringeva a inseguire con il CSS una card che ha misure proprie.
+
+   Due opzioni tengono l'utente dentro il sito, ed entrambe servono:
+
+   - withSignUp mette accesso e iscrizione nello stesso componente. Senza,
+     chi entra con Google per la prima volta non ha ancora un account: Clerk
+     "trasferisce" il tentativo al flusso di iscrizione, che in mancanza di
+     una pagina nostra è quello ospitato su <dominio>.accounts.dev. È così
+     che ci si ritrova sul portale di Clerk a metà registrazione.
+
+   - oauthFlow 'popup' apre Google in una finestra a parte invece di
+     portarci via e riportarci indietro. Il permesso di aprirla c'è perché
+     parte da un clic dell'utente. */
 async function apriAccesso() {
   if (!stato.clerk) return;
   stato.clerk.openSignIn({
-    routing: 'virtual',
+    withSignUp: true,
+    oauthFlow: 'popup',
     forceRedirectUrl: window.location.href,
     signUpForceRedirectUrl: window.location.href
   });
