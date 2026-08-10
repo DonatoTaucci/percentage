@@ -310,7 +310,7 @@
     if (c.lat !== null) {
       html += '<p class="tiny muted" style="margin:0 0 12px">Posizione salvata: ' +
         c.lat.toFixed(5) + ', ' + c.lng.toFixed(5) +
-        (c.etichetta ? ' · ' + esc(c.etichetta) : '') + '</p>';
+        (c.etichetta ? ' · <span data-no-i18n>' + esc(c.etichetta) + '</span>' : '') + '</p>';
     } else {
       html += '<p class="tiny muted" style="margin:0 0 12px">Nessuna posizione salvata: premi il pulsante mentre sei sul posto di lavoro.</p>';
     }

@@ -157,10 +157,17 @@ for (const formato of ['long', 'short']) {
   }
 }
 
+const dateMinuscole = new Set([...date].map((n) => n.toLowerCase()));
+
 const elenco = chiavi
   .filter((k) => k.length > 1)
   .filter((k) => !ESCLUDI.some((re) => re.test(k)))
-  .filter((k) => !date.has(k))
+  // Il confronto è insensibile alle maiuscole: l'interfaccia scrive "Lunedì"
+  // dove Intl restituisce "lunedì".
+  .filter((k) => !date.has(k) && !dateMinuscole.has(k.toLowerCase()))
+  // Le frasi che incorporano una data formattata cambiano chiave ogni mese:
+  // la parte variabile la traduce già Intl, il resto è punteggiatura.
+  .filter((k) => ![...date].some((n) => new RegExp('\\b' + n + '\\b', 'i').test(k)))
   .sort((a, b) => a.localeCompare(b, 'it'));
 
 const precedenti = existsSync(USCITA) ? JSON.parse(readFileSync(USCITA, 'utf8')) : [];

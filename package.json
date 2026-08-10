@@ -1,0 +1,11 @@
+{
+  "name": "percentage",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "chiavi": "node scripts/raccogli-chiavi.mjs",
+    "chiavi:verifica": "node scripts/raccogli-chiavi.mjs --verifica",
+    "lingue": "node scripts/controlla-lingue.mjs",
+    "clerk": "node scripts/imposta-chiave-clerk.mjs"
+  }
+}

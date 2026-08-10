@@ -116,6 +116,8 @@
     return html;
   }
 
+  function maiuscola(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+
   function saldoBadge(minutes) {
     if (Math.abs(minutes) < 1) return '<span class="badge">In pari</span>';
     if (minutes > 0) return '<span class="badge warn">+' + Calc.fmtDuration(minutes) + '</span>';
@@ -970,8 +972,9 @@
     html += '<div class="grid grid-2" style="margin-top:14px">';
     html += '<label class="field">Primo giorno della settimana' +
       '<select data-set="inizioSettimana">' +
-      '<option value="1"' + (s.inizioSettimana === 1 ? ' selected' : '') + '>Lunedì</option>' +
-      '<option value="0"' + (s.inizioSettimana === 0 ? ' selected' : '') + '>Domenica</option>' +
+      // I nomi dei giorni li dà Intl, come ovunque nell'app.
+      '<option value="1"' + (s.inizioSettimana === 1 ? ' selected' : '') + '>' + maiuscola(Calc.GIORNI[1]) + '</option>' +
+      '<option value="0"' + (s.inizioSettimana === 0 ? ' selected' : '') + '>' + maiuscola(Calc.GIORNI[0]) + '</option>' +
       '</select></label>';
     html += '</div>';
     html += '</div>';
