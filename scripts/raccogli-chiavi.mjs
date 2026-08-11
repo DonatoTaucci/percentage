@@ -7,7 +7,13 @@
    l'utente, con i numeri già sostituiti da segnaposto.
 
    Uso:  node scripts/raccogli-chiavi.mjs            (scrive js/lang/_chiavi.json)
-         node scripts/raccogli-chiavi.mjs --verifica  (esce 1 se ci sono novità) */
+         node scripts/raccogli-chiavi.mjs --verifica  (esce 1 se ci sono novità)
+
+   --pota toglie le chiavi non incontrate, e va usato con la mano ferma: molte
+   frasi compaiono solo con certi dati (un turno notturno nel mese in corso, un
+   profilo di rischio particolare, una media settimanale sotto le 48 ore), e in
+   una passata che capita nel giorno sbagliato non si vedono. Sono vive lo
+   stesso. Potare senza guardare l'elenco significa cancellarne le traduzioni. */
 
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -113,7 +119,7 @@ for (const stato of [
 await page.evaluate(() => {
   window.Store.shifts().slice().forEach((t) => window.Store.deleteShift(t.id));
   window.Store.cancelPunch();
-  window.Store.updateSettings({ geo: { attivo: false, lat: null, lng: null, raggio: 150, etichetta: '' }, aiKey: '' });
+  window.Store.updateSettings({ geo: { attivo: false, lat: null, lng: null, raggio: 150, etichetta: '' } });
 });
 for (const v of ['dashboard', 'turni', 'statistiche', 'benessere', 'impostazioni']) await vaiA(v);
 
@@ -189,13 +195,22 @@ for (const geo of [
   await vaiA('impostazioni');
 }
 
-/* 7. L'assistente: senza chiave, con chiave ma senza consenso (dove compare
-      il riquadro che lo chiede), e infine con il consenso dato. */
+/* 7. L'assistente. Gli stati sono quattro e nessuno si vede per caso: senza
+      account, con account ma senza consenso, con il consenso, e con la quota
+      esaurita. Quota e ruoli arrivano dal server, che qui non risponde:
+      si sostituiscono, perché servono le frasi, non i numeri veri. */
 await page.evaluate(() => {
-  window.Store.updateSettings({ aiKey: 'sk-ant-finta', consensi: { benessere: null, ia: null } });
+  window.Store.updateSettings({ consensi: { benessere: null, ia: null } });
   window.App.ctx.chat = [];
 });
-for (const v of ['benessere', 'impostazioni']) await vaiA(v);
+for (const v of ['benessere', 'impostazioni']) await vaiA(v);   // senza account
+
+await page.evaluate(() => {
+  window.AI.disponibile = () => true;
+  window.AI.stato = () => ({ caricato: true, usati: 12, limite: 40, ruoli: [] });
+  window.Cloud.connesso = () => true;
+});
+for (const v of ['benessere', 'impostazioni']) await vaiA(v);   // senza consenso
 
 /* 7b. Il consenso al questionario, che si vede solo aprendolo senza averlo dato. */
 await page.evaluate(() => { window.App.ctx.quizOpen = true; window.App.go('benessere'); });
@@ -209,6 +224,35 @@ await page.evaluate(() => {
   window.App.ctx.chat = [{ role: 'user', content: 'ciao' }, { role: 'assistant', content: 'ciao a te' }];
 });
 for (const v of ['benessere', 'impostazioni']) await vaiA(v);
+
+// conversazione vuota: è il primo schermo di chi apre la sezione, e nessun
+// altro stato mostra la frase di benvenuto
+await page.evaluate(() => { window.App.ctx.chat = []; window.App.go('benessere'); });
+await page.waitForTimeout(160);
+await raccogliVisibile();
+await page.evaluate(() => {
+  window.App.ctx.chat = [{ role: 'user', content: 'ciao' }, { role: 'assistant', content: 'ciao a te' }];
+});
+
+// con un ruolo e senza limite
+await page.evaluate(() => {
+  window.AI.stato = () => ({
+    caricato: true, usati: 120, limite: -1,
+    ruoli: [{ codice: 'founder', etichetta: 'Founder', colore: 'ok', descrizione: 'senza limiti' }],
+  });
+});
+for (const v of ['benessere', 'impostazioni']) await vaiA(v);
+
+// i messaggi di errore del modulo, che nessuna schermata mostra da sola
+await page.evaluate(() => {
+  const err = (codice, dati) => Object.assign(new Error(codice), { dati: dati || {} });
+  const b = document.getElementById('main');
+  b.innerHTML = ['quota-esaurita', 'nessun-accesso', 'non-autenticato', 'chiave-mancante', 'modello']
+    // Già tradotti da T() con i segnaposto: senza questo il giro sul DOM
+    // creerebbe una seconda chiave con i numeri al posto dei nomi.
+    .map((c) => '<p data-no-i18n>' + window.AI.messaggioErrore(err(c, { limite: 40 })) + '</p>').join('');
+  window.__raccogli(b);
+});
 
 /* 7c. I due documenti, dentro e fuori dall'applicazione. */
 for (const doc of ['privacy', 'ia']) {
@@ -226,7 +270,7 @@ for (const doc of ['privacy', 'ia']) {
 await page.evaluate(() => { window.App.ctx.aiBusy = true; window.App.render(); });
 await page.waitForTimeout(160);
 await raccogliVisibile();
-await page.evaluate(() => { window.App.ctx.aiBusy = false; window.Store.updateSettings({ aiKey: '' }); });
+await page.evaluate(() => { window.App.ctx.aiBusy = false; });
 
 /* 8. Il modale del turno, nuovo e per ogni tipo di giornata. */
 await page.evaluate(() => {
@@ -247,7 +291,12 @@ await page.evaluate(() => {
   const vero = window.Admin.stato;
   window.Admin.stato = () => finto;
   const c = {
-    adminUtenti: [{ user_id: 'user_demo', turni: 12, checkin: 3, timbratura_aperta: true, ultima_attivita: new Date().toISOString() }],
+    adminRuoli: [
+      { codice: 'utente', etichetta: 'Utente', descrizione: 'base', quota_ia: 40, ia_illimitata: false, salta_abbonamento: false, amministratore: false, colore: 'neutro' },
+      { codice: 'tester', etichetta: 'Tester', descrizione: 'prova le novità', quota_ia: 200, ia_illimitata: false, salta_abbonamento: true, amministratore: false, colore: 'info' },
+      { codice: 'founder', etichetta: 'Founder', descrizione: 'senza limiti', quota_ia: null, ia_illimitata: true, salta_abbonamento: true, amministratore: false, colore: 'ok' },
+    ],
+    adminUtenti: [{ user_id: 'user_demo', turni: 12, checkin: 3, timbratura_aperta: true, ruoli: ['tester'], ia_mese: 12, ia_limite: 200, ultima_attivita: new Date().toISOString() }],
     adminDati: {
       userId: 'user_demo',
       shifts: [{ id: 's1', date: '2026-08-01', start_time: '09:00', end_time: '18:00', break_min: 60, tipo: 'lavoro', note: '' }],
@@ -260,7 +309,7 @@ await page.evaluate(() => {
   // con dati, senza dati, e nello stato "non sei amministratore"
   b.innerHTML = window.UI.amministrazione(c);
   window.__raccogli(b);
-  b.innerHTML = window.UI.amministrazione({ adminUtenti: [], adminDati: null });
+  b.innerHTML = window.UI.amministrazione({ adminUtenti: [], adminDati: null, adminRuoli: [] });
   window.__raccogli(b);
   b.innerHTML = window.UI.amministrazione({ adminUtenti: null, adminDati: null, adminErrore: 'Servizio di accesso non raggiungibile. Controlla la connessione e riprova.' });
   window.__raccogli(b);
@@ -276,7 +325,7 @@ const ESCAPE = { n: '\n', t: '\t', r: '\r', "'": "'", '"': '"', '\\': '\\' };
 const deEscape = (t) => t.replace(/\\(.)/g, (intero, c) => (c in ESCAPE ? ESCAPE[c] : intero));
 
 const daSorgente = new Set();
-for (const f of ['js/app.js', 'js/ui.js', 'js/geo.js', 'js/cloud.js', 'js/admin.js']) {
+for (const f of ['js/app.js', 'js/ui.js', 'js/geo.js', 'js/cloud.js', 'js/admin.js', 'js/ai.js']) {
   const codice = readFileSync(resolve(radice, f), 'utf8');
   for (const re of [/\btoast\(\s*'((?:[^'\\]|\\.)*)'/g, /\bT\(\s*'((?:[^'\\]|\\.)*)'/g, /confirm\(\s*'((?:[^'\\]|\\.)*)'/g]) {
     let m;

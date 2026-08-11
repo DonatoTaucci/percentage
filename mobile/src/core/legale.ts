@@ -70,7 +70,7 @@ export const INFORMATIVA: Documento = {
           "Clerk, per la gestione degli account e dell'accesso: tratta email, nome utente e le informazioni del metodo di accesso che scegli, compresi Google, Apple o Facebook se usi uno di quelli.",
           "Supabase, per il database che conserva turni, check-in e impostazioni sincronizzati: i dati sono ospitati su server nell'Unione Europea, nella regione di Francoforte.",
           "GitHub Pages, che ospita i file del sito.",
-          "Anthropic, solo se attivi la conversazione con l'intelligenza artificiale e solo per il tempo della richiesta."
+          "Google, per il modello che risponde nella conversazione con l'intelligenza artificiale: riceve il riepilogo aggregato solo quando scrivi un messaggio, e solo per il tempo di rispondere."
         ],
         "coda": [
           "Alcuni di questi fornitori hanno sede negli Stati Uniti. In quei casi il trasferimento avviene sulla base delle garanzie previste dal Regolamento, cioè le clausole contrattuali standard della Commissione europea o l'adesione del fornitore al quadro di adeguatezza fra Unione europea e Stati Uniti.",
@@ -128,13 +128,13 @@ export const NOTA_IA: Documento = {
     "titolo": "Come viene usata l'intelligenza artificiale",
     "intro": [
       "Quasi tutto in questa applicazione non è intelligenza artificiale: è aritmetica. Ore, percentuali, straordinari, indice di rischio e consigli sono calcolati sul tuo dispositivo da regole fisse, scritte una volta e sempre uguali a parità di dati.",
-      "L'unica parte che usa un modello di intelligenza artificiale è la conversazione facoltativa nella sezione Benessere del sito. È spenta finché non la accendi tu."
+      "L'unica parte che usa un modello di intelligenza artificiale è la conversazione facoltativa nella sezione Benessere del sito. È spenta finché non la accendi tu, e ogni account ha un numero limitato di messaggi al mese."
     ],
     "sezioni": [
       {
         "titolo": "Con che cosa stai parlando",
         "paragrafi": [
-          "Quando apri quella conversazione stai scrivendo a un sistema di intelligenza artificiale, non a una persona. È Claude, un modello linguistico di Anthropic, chiamato direttamente dal tuo dispositivo con una chiave che fornisci tu.",
+          "Quando apri quella conversazione stai scrivendo a un sistema di intelligenza artificiale, non a una persona. È Gemini, un modello linguistico di Google, che il nostro server interroga per conto tuo.",
           "Le risposte generate dal modello sono contrassegnate come tali nell'interfaccia, in modo che non si confondano mai con un testo scritto da un essere umano o con un calcolo dell'applicazione."
         ]
       },
@@ -143,7 +143,7 @@ export const NOTA_IA: Documento = {
         "paragrafi": [
           "Viene inviato un riepilogo aggregato del periodo: ore totali, media settimanale, straordinari, giorni lavorati e di riposo, giornate lunghe, turni notturni, e il punteggio dell'ultimo check-in con le sue voci.",
           "Non vengono inviati i singoli turni, le note che scrivi sui turni, la tua posizione, il tuo indirizzo email né il tuo nome utente.",
-          "La chiave che usi resta salvata solo sul dispositivo e non viene mai trasmessa al server di questa applicazione."
+          "La richiesta passa da un nostro servizio, che vi aggiunge le istruzioni date al modello e conta i messaggi del mese. Il testo della conversazione non viene conservato: finita la risposta, sul server non ne resta traccia, e sul dispositivo resta finché non ricarichi la pagina."
         ]
       },
       {

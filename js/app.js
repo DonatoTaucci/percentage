@@ -139,6 +139,9 @@
 
   function go(view) {
     ctx.view = view;
+    // Quota e ruoli si rileggono entrando dove si vedono: cambiano dal
+    // pannello di amministrazione, cioè fuori da questa scheda.
+    if (view === 'benessere' || view === 'impostazioni') AI.aggiornaStato();
     if (view === 'admin' && !ctx.adminUtenti) caricaUtentiAdmin();
     if (view === 'turni' && !ctx.turniMonth) ctx.turniMonth = Calc.today();
     if (view === 'statistiche' && !ctx.statsYear) ctx.statsYear = Calc.fromISO(Calc.today()).getFullYear();
@@ -230,7 +233,9 @@
     AI.ask(ctx.chat).then(function (res) {
       ctx.chat.push({ role: 'assistant', content: res.text });
     }).catch(function (err) {
-      ctx.chat.push({ role: 'assistant', content: 'Non sono riuscito a rispondere: ' + err.message });
+      // Il messaggio arriva dal modulo, che sa distinguere "quota esaurita"
+      // da "il servizio è rotto": sono due cose diverse per chi legge.
+      ctx.chat.push({ role: 'assistant', content: AI.messaggioErrore(err) });
     }).then(function () {
       ctx.aiBusy = false;
       render();
@@ -496,13 +501,14 @@
       }
 
       case 'ai-analyze':
+        if (!Store.consenso('ia')) { toast('Serve prima il tuo consenso all\'uso dell\'IA.'); break; }
         ctx.aiBusy = true;
         ctx.chat.push({ role: 'user', content: 'Analizza i miei dati di lavoro e l\'ultimo check-in.' });
         render();
         AI.analyze().then(function (res) {
           ctx.chat.push({ role: 'assistant', content: res.text });
         }).catch(function (err) {
-          ctx.chat.push({ role: 'assistant', content: 'Non sono riuscito a rispondere: ' + err.message });
+          ctx.chat.push({ role: 'assistant', content: AI.messaggioErrore(err) });
         }).then(function () {
           ctx.aiBusy = false;
           render();
@@ -514,26 +520,30 @@
         render();
         break;
 
-      case 'save-ai': {
-        var key = (document.getElementById('ai-key') || {}).value || '';
-        var model = (document.getElementById('ai-model') || {}).value || 'claude-opus-5';
-        Store.setAi(key.trim(), model);
-        toast(key.trim() ? 'Chiave salvata su questo dispositivo.' : 'Chiave rimossa.');
-        render();
-        break;
-      }
-
-      case 'clear-ai':
-        Store.setAi('', Store.get().aiModel);
-        ctx.chat = [];
-        toast('Chiave rimossa.');
-        render();
-        break;
 
       /* --- amministrazione --- */
       case 'admin-ricarica':
         caricaUtentiAdmin();
         break;
+
+      /* Il ruolo si assegna e si toglie con lo stesso tocco: l'elenco si
+         ricarica dopo, perché quota e vantaggi si vedono lì. */
+      case 'admin-ruolo': {
+        var utenteR = el.dataset.utente;
+        var codiceR = el.dataset.ruolo;
+        var attivo = el.dataset.attivo === '1';
+        var azione = attivo ? Admin.togli(utenteR, codiceR) : Admin.assegna(utenteR, codiceR);
+        azione.then(function () {
+          toast(attivo ? 'Ruolo tolto.' : 'Ruolo assegnato.');
+          return Admin.utenti();
+        }).then(function (u) {
+          ctx.adminUtenti = u;
+          render();
+          // Se il ruolo è il proprio, cambia anche la quota che si vede altrove.
+          AI.aggiornaStato();
+        }).catch(erroreAdmin);
+        break;
+      }
 
       case 'admin-apri':
         ctx.adminDati = null;
@@ -700,7 +710,7 @@
         Store.shifts().slice().forEach(function (t) { Store.deleteShift(t.id); });
         Store.checkins().slice().forEach(function (c) { Store.deleteCheckin(c.id); });
         if (suServer) global.Cloud.sincronizza(true);
-        toast(suServer ? 'Dati cancellati, qui e sul server.' : 'Dati cancellati.');
+        toast(suServer ? T('Dati cancellati, qui e sul server.') : T('Dati cancellati.'));
         render();
         break;
       }
@@ -855,6 +865,9 @@
     ctx.adminUtenti = null;
     ctx.adminErrore = null;
     render();
+    // Il catalogo dei ruoli serve già per l'elenco: senza, le colonne
+    // mostrerebbero i codici grezzi al posto delle etichette.
+    Admin.ruoli().then(function (r) { ctx.adminRuoli = r; render(); }).catch(function () { /* etichette grezze */ });
     return Admin.utenti().then(function (u) {
       ctx.adminUtenti = u;
       render();
@@ -1028,6 +1041,12 @@
     // Il modulo cloud si carica dopo (è un modulo ES): quando cambia stato,
     // la vista si aggiorna da sola. È anche il momento in cui si scopre se
     // l'utente ha una sessione valida, cioè se mostrare l'app o la landing.
+    // La quota arriva dal server: quando arriva, la schermata che la mostra
+    // va ridisegnata, altrimenti resta ferma su "Caricamento…".
+    AI.onChange(function () {
+      if (ctx.view === 'benessere' || ctx.view === 'impostazioni') render();
+    });
+
     var attesaCloud = setInterval(function () {
       if (!global.Cloud) return;
       clearInterval(attesaCloud);
@@ -1035,9 +1054,11 @@
         if (global.Cloud.connesso()) segnaAccesso();
         renderGate();
         aggiornaSchedaAdmin();
+        AI.aggiornaStato();
       });
       renderGate();
       aggiornaSchedaAdmin();
+      AI.aggiornaStato();
     }, 300);
     setTimeout(function () { clearInterval(attesaCloud); }, 15000);
 

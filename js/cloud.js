@@ -244,6 +244,39 @@ async function apriRegistrazione() {
   });
 }
 
+/* ---------------- funzioni sul server ---------------- */
+
+/* Chiama una Edge Function con il token di Clerk.
+
+   Non passa dal client di Supabase di proposito: quello parla con PostgREST,
+   e qui serve una funzione, con i suoi codici di stato e il suo corpo di
+   errore che l'interfaccia deve poter distinguere (quota esaurita non è un
+   guasto e non va mostrato come tale). */
+async function chiamaFunzione(nome, corpo) {
+  if (!stato.clerk || !stato.utente) throw new Error('non-autenticato');
+  const token = (await stato.clerk.session?.getToken()) ?? '';
+  if (!token) throw new Error('non-autenticato');
+
+  const risposta = await fetch(CFG.SUPABASE_URL + '/functions/v1/' + nome, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      apikey: CFG.SUPABASE_KEY,
+      Authorization: 'Bearer ' + token
+    },
+    body: JSON.stringify(corpo || {})
+  });
+
+  let dati = null;
+  try { dati = await risposta.json(); } catch (err) { /* corpo non JSON */ }
+  if (!risposta.ok) {
+    const e = new Error((dati && dati.errore) || ('http-' + risposta.status));
+    e.dati = dati || {};
+    throw e;
+  }
+  return dati;
+}
+
 /* Cancellazione completa: righe sul server, poi l'account.
 
    L'ordine conta. Le policy per riga concedono l'accesso in base al token:
@@ -431,6 +464,7 @@ window.Cloud = {
   riprova,
   esci,
   eliminaTutto,
+  chiamaFunzione,
   sincronizza
 };
 

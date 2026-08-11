@@ -79,6 +79,17 @@ il collegamento fra Clerk e Supabase).
 - Riepilogo mensile dell'anno con ore lavorate, previste, percentuale, straordinari e saldo.
 - Distribuzione delle ore medie per giorno della settimana.
 
+**Ruoli** (solo sito)
+- Catalogo in tabella (`ruoli`), non nel codice: aggiungere *beta*, *amico* o *collaboratore* è una
+  riga, non un rilascio. I vantaggi invece sono colonne fisse — quota IA, IA illimitata, esenzione
+  dall'abbonamento, permesso di amministrare — perché un vantaggio esiste solo se il codice lo applica.
+- Di partenza: **Utente** (40 messaggi), **Tester** (200), **Amico** (100), **Founder** (illimitati),
+  **Amministratore** (illimitati + accesso alla scheda Admin).
+- Un utente può averne più d'uno e **vince sempre il vantaggio migliore**: assegnare un ruolo non
+  può togliere niente.
+- Si assegnano con un tocco dalla scheda Admin. La quota della beta gratuita per tutti si cambia
+  modificando `quota_ia` della riga `utente`: nessun rilascio.
+
 **Amministrazione** (solo sito)
 - Scheda visibile agli amministratori, elencati nella tabella `admins` del database.
 - Elenco degli utenti con email, nome utente, numero di turni, check-in, timbratura in corso
@@ -86,8 +97,9 @@ il collegamento fra Clerk e Supabase).
   una riga scritta al primo ingresso il database non saprebbe di chi si è registrato e basta.
 - L'email mostrata è quella contenuta nel token, riscritta dal server con un trigger: un
   client può mentire su ciò che manda, non su come è firmato il proprio token.
-- Per ciascuno: turni modificabili riga per riga, check-in eliminabili, impostazioni e
-  timbratura come JSON.
+- Per ciascuno: ruoli assegnabili con un tocco, turni modificabili riga per riga, check-in
+  eliminabili, impostazioni e timbratura come JSON. L'elenco mostra ruoli e messaggi IA consumati
+  nel mese.
 - L'autorizzazione è nelle policy per riga del database, non nel browser: nascondere una
   scheda non impedisce di chiamare l'API, quindi il controllo che conta è sul server.
 - Gli amministratori si aggiungono solo dal pannello Supabase: dall'applicazione nessuno
@@ -108,9 +120,11 @@ il collegamento fra Clerk e Supabase).
   irregolarità del carico.
 - Consigli pratici generati in base al profilo, ordinati per priorità, con un primo passo concreto.
 - Storico dei check-in per vedere la direzione nel tempo.
-- **Approfondimento opzionale con l'IA**: collegando una chiave API di Claude si sblocca una
-  conversazione libera che ragiona sui propri numeri. Senza chiave l'analisi funziona comunque,
-  perché è calcolata interamente sul dispositivo.
+- **Approfondimento opzionale con l'IA**: una conversazione libera che ragiona sui propri numeri.
+  Gira su **Gemini 2.5 Flash**, chiamato da una Edge Function di Supabase: la chiave sta nei secret
+  del server, non esiste sul dispositivo di nessuno e il modello non è selezionabile. In beta è
+  gratuita, con **40 messaggi al mese** per account — quota alzabile con i ruoli. L'analisi di base
+  funziona comunque, perché è calcolata interamente sul dispositivo.
 
 > La sezione benessere è uno strumento di auto-osservazione, non uno strumento diagnostico.
 > In caso di malessere intenso o prolungato il riferimento resta il medico di base, uno psicologo
@@ -216,15 +230,20 @@ lavoro — impiego che ricadrebbe fra i sistemi ad alto rischio dell'AI Act.
 - **Esporta un backup ogni tanto** (JSON) dalla sezione Impostazioni: cancellare i dati del browser
   cancella anche l'archivio. È disponibile anche l'esportazione CSV dei turni, utile come traccia
   degli straordinari.
-- La chiave API dell'IA, se inserita, è salvata solo su quel dispositivo e usata per chiamare
-  direttamente `api.anthropic.com`. All'IA vengono inviati il riepilogo aggregato dei turni e
-  l'ultimo check-in — non i singoli turni né le note.
+- **La chiave dell'IA non esiste sul client.** La conversazione passa da una Edge Function di
+  Supabase che tiene la chiave nei suoi secret, aggiunge le istruzioni per il modello e conta la
+  quota mensile. Al modello vengono inviati il riepilogo aggregato dei turni e l'ultimo check-in —
+  non i singoli turni, non le note, non email o nome utente. Il testo della conversazione non viene
+  conservato da nessuna parte.
+- La quota è contata dal database con una funzione `security definer`: il controllo e l'incremento
+  stanno nella stessa istruzione, così due richieste in parallelo non passano entrambe.
 
 ---
 
 ## Struttura
 
 ```
+supabase/functions/     benessere-ia: la conversazione lato server (Deno)
 mobile/                 app nativa Expo (React Native + TypeScript)
   app/                  schermate: accesso, Oggi, Turni, Statistiche, Benessere, Impostazioni
   src/core/             logica pura: calcoli, timbratura, decisioni GPS, motore benessere
@@ -240,7 +259,7 @@ js/calc.js              date, durate, percentuali, straordinari
 js/charts.js            grafici SVG inline (nessuna libreria)
 js/coach.js             questionario, indice di rischio, consigli
 js/geo.js               timbratura automatica GPS e notifiche
-js/ai.js                integrazione opzionale con l'API di Claude
+js/ai.js                client della funzione sul server: riepilogo, quota, errori
 js/i18n.js              traduzione dell'interfaccia
 js/lang/                dizionari e elenco delle chiavi
 js/legale.js            informativa privacy e nota sull'IA
@@ -261,7 +280,7 @@ Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
 ## Test
 
 ```bash
-# sito (62 test in un browser headless)
+# sito (65 test in un browser headless)
 python3 -m http.server 8765 &
 npx playwright install chromium     # solo la prima volta
 node tests/calcoli.test.js

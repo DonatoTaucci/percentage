@@ -1,40 +1,26 @@
-/* ai.js — approfondimento opzionale con l'API di Claude.
-   La chiave resta nel localStorage del dispositivo e viene inviata solo ad api.anthropic.com.
-   Senza chiave l'app funziona comunque: l'analisi di base è tutta locale (coach.js). */
+/* ai.js — la conversazione della sezione Benessere.
+
+   Qui non c'è più nessuna chiave e nessun modello: la richiesta va alla
+   funzione `benessere-ia` sul server, che tiene la chiave, conta la quota
+   mensile e decide le istruzioni date al modello. Il client si limita a
+   preparare il riepilogo dei numeri e a mostrare la risposta.
+
+   Il riepilogo lo compone il dispositivo perché è già tutto calcolato qui
+   (coach.js) e perché così resta vero ciò che dice l'informativa: parte un
+   aggregato, non i turni. Il server lo tronca comunque, che è il modo di non
+   fidarsi della lunghezza senza dover ricalcolare tutto una seconda volta. */
 (function (global) {
   'use strict';
 
-  var ENDPOINT = 'https://api.anthropic.com/v1/messages';
-  var API_VERSION = '2023-06-01';
+  var stato = {
+    usati: null,
+    limite: null,
+    ruoli: [],
+    caricato: false
+  };
 
-  var LINGUE = { it: 'italiano', en: 'inglese', es: 'spagnolo', fr: 'francese', de: 'tedesco' };
-
-  function lingua() {
-    var code = global.I18n ? global.I18n.lingua() : 'it';
-    return LINGUE[code] || 'italiano';
-  }
-
-  var SYSTEM = [
-    'Sei un assistente che aiuta un lavoratore a riflettere su carico di lavoro, stress, ansia da lavoro e prevenzione del burnout.',
-    'Rispondi sempre in {LINGUA}, con un tono diretto e concreto, senza retorica motivazionale.',
-    '',
-    'Come lavori:',
-    '- Parti dai dati reali dei turni che ti vengono forniti e citali quando sono rilevanti (ore, straordinari, giorni consecutivi, pause).',
-    '- Dai al massimo 3 suggerimenti per risposta, ciascuno con un primo passo eseguibile entro la settimana.',
-    '- Se una condizione dipende dall\'organizzazione del lavoro e non dalla persona, dillo esplicitamente invece di suggerire di "gestire meglio lo stress".',
-    '- Fai una domanda di chiarimento solo quando la risposta cambierebbe davvero il consiglio.',
-    '',
-    'Limiti:',
-    '- Non sei un medico né uno psicoterapeuta e non formuli diagnosi.',
-    '- Se emergono segnali di sofferenza intensa o persistente, invita con naturalezza a rivolgersi al medico di base, a uno psicologo o al medico competente aziendale.',
-    '- Se emergono riferimenti ad autolesionismo o pensieri suicidari, interrompi i consigli pratici, esprimi vicinanza e indica di contattare subito un servizio di emergenza (112) o il Telefono Amico (02 2327 2327).',
-    '',
-    'Non inventare dati che non ti sono stati forniti. Mantieni le risposte sotto le 250 parole salvo richiesta esplicita.'
-  ].join('\n');
-
-  function hasKey() {
-    return !!(Store.get().aiKey || '').trim();
-  }
+  var ascoltatori = [];
+  function notifica() { ascoltatori.forEach(function (fn) { fn(stato); }); }
 
   /** Riassunto compatto dei dati per il contesto del modello. */
   function contextBlock() {
@@ -61,7 +47,7 @@
 
     if (last && last.dims) {
       lines.push('');
-      lines.push('ULTIMO CHECK-IN BENESSERE (' + new Date(last.ts).toLocaleDateString(window.I18n ? window.I18n.lingua() : 'it') + ', 0 = nessun problema, 100 = massima criticità):');
+      lines.push('ULTIMO CHECK-IN BENESSERE (' + new Date(last.ts).toLocaleDateString(global.I18n ? global.I18n.lingua() : 'it') + ', 0 = nessun problema, 100 = massima criticità):');
       lines.push('- Punteggio complessivo: ' + last.score + ' (' + (last.level || '') + ')');
       Object.keys(Coach.DIMENSIONS).forEach(function (k) {
         if (last.dims[k] !== null && last.dims[k] !== undefined) {
@@ -76,57 +62,45 @@
     return lines.join('\n');
   }
 
+  /* La conversazione esiste solo con un account: la quota è per persona, e
+     senza persona non c'è quota da contare. */
+  function disponibile() {
+    return !!(global.Cloud && global.Cloud.connesso());
+  }
+
+  /** Quota residua e ruoli, letti dal server. Non consuma niente. */
+  function aggiornaStato() {
+    if (!disponibile() || !global.Cloud.stato().supabase) return Promise.resolve(stato);
+    return global.Cloud.stato().supabase.rpc('stato_ia').then(function (res) {
+      if (res.error) return stato;
+      var d = res.data || {};
+      stato.usati = d.usati || 0;
+      stato.limite = typeof d.limite === 'number' ? d.limite : null;
+      stato.ruoli = Array.isArray(d.ruoli) ? d.ruoli : [];
+      stato.caricato = true;
+      notifica();
+      return stato;
+    }).catch(function () { return stato; });
+  }
+
   /**
-   * Invia la conversazione all'API.
+   * Invia la conversazione alla funzione sul server.
    * history: [{ role:'user'|'assistant', content:'...' }]
    */
   function ask(history) {
-    var key = (Store.get().aiKey || '').trim();
-    if (!key) return Promise.reject(new Error('Nessuna chiave API configurata.'));
-
-    var model = Store.get().aiModel || 'claude-opus-5';
-    var messages = history.slice(-20).map(function (m) {
-      return { role: m.role, content: m.content };
-    });
-
-    // Il contesto dati va in coda al system prompt: cambia raramente e resta separato dalla conversazione.
-    // La lingua è quella dell'interfaccia: chi legge il sito in tedesco non
-    // deve ricevere l'unica risposta della pagina in italiano.
-    var system = SYSTEM.replace('{LINGUA}', lingua()) + '\n\n---\n' + contextBlock();
-
-    return fetch(ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': API_VERSION,
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: 4000,
-        system: system,
-        messages: messages
-      })
-    }).then(function (res) {
-      return res.json().then(function (data) {
-        if (!res.ok) {
-          var msg = (data && data.error && data.error.message) || ('Errore HTTP ' + res.status);
-          throw new Error(msg);
-        }
-        return data;
-      });
-    }).then(function (data) {
-      if (data.stop_reason === 'refusal') {
-        throw new Error('Il modello ha rifiutato di rispondere a questa richiesta.');
-      }
-      var text = (data.content || [])
-        .filter(function (b) { return b.type === 'text'; })
-        .map(function (b) { return b.text; })
-        .join('\n')
-        .trim();
-      if (!text) throw new Error('Risposta vuota dal modello.');
-      return { text: text, usage: data.usage || null };
+    if (!disponibile()) return Promise.reject(new Error('non-autenticato'));
+    return global.Cloud.chiamaFunzione('benessere-ia', {
+      messaggi: history.slice(-20).map(function (m) {
+        return { role: m.role, content: m.content };
+      }),
+      riepilogo: contextBlock(),
+      lingua: global.I18n ? global.I18n.lingua() : 'it'
+    }).then(function (d) {
+      if (typeof d.usati === 'number') stato.usati = d.usati;
+      if (typeof d.limite === 'number') stato.limite = d.limite;
+      stato.caricato = true;
+      notifica();
+      return { text: d.testo, bloccato: !!d.bloccato };
     });
   }
 
@@ -138,11 +112,35 @@
     }]);
   }
 
+  /* Traduzione dei codici di errore in frasi.
+
+     Quota esaurita e chiave mancante non sono guasti dello stesso tipo: la
+     prima riguarda l'utente e ha una data di scadenza, la seconda riguarda
+     chi gestisce il servizio e l'utente non può farci niente. Dirle nello
+     stesso modo manderebbe a cercare il problema nel posto sbagliato. */
+  function messaggioErrore(err) {
+    var codice = String(err && err.message || '');
+    var d = (err && err.dati) || {};
+    if (codice === 'quota-esaurita') {
+      return T('Hai usato tutti i {limite} messaggi di questo mese. La quota si azzera il primo del mese prossimo.', { limite: d.limite || stato.limite || 0 });
+    }
+    if (codice === 'nessun-accesso') return T('Il tuo account non ha accesso alla conversazione con l\'IA.');
+    if (codice === 'non-autenticato') return T('Serve l\'accesso per usare la conversazione.');
+    if (codice === 'chiave-mancante') return T('Il servizio non è ancora configurato: l\'assistente è momentaneamente spento.');
+    if (codice === 'modello' || codice === 'rete' || codice === 'risposta-vuota') {
+      return T('L\'assistente non ha risposto. Riprova fra poco.');
+    }
+    return T('Non sono riuscito a rispondere: {errore}', { errore: codice });
+  }
+
   global.AI = {
-    hasKey: hasKey,
+    disponibile: disponibile,
+    stato: function () { return stato; },
+    onChange: function (fn) { ascoltatori.push(fn); },
+    aggiornaStato: aggiornaStato,
     ask: ask,
     analyze: analyze,
     contextBlock: contextBlock,
-    SYSTEM: SYSTEM
+    messaggioErrore: messaggioErrore
   };
 })(window);

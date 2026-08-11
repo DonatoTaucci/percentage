@@ -28,7 +28,7 @@
        che è metà di ciò che l'art. 7 GDPR chiede di poter provare. */
     consensi: {
       benessere: null,            // check-in: sono dati sulla salute (art. 9)
-      ia: null                    // invio del riepilogo ad Anthropic
+      ia: null                    // invio del riepilogo aggregato al modello
     }
   };
 
@@ -49,8 +49,7 @@
     checkins: [],     // { id, ts, answers:{}, score, level, dims:{} }
     punch: null,      // timbratura in corso: { date, startedAt, pauses: [{from, to}] }
     sync: Object.assign({}, EMPTY_SYNC),
-    aiKey: '',        // chiave API opzionale, salvata solo in locale
-    aiModel: 'claude-opus-5'
+    aiKey: ''         // eredità: vedi la pulizia in load()
   };
 
   function uniq(a) {
@@ -122,8 +121,11 @@
       if (Array.isArray(data.checkins)) state.checkins = data.checkins;
       if (data.punch && data.punch.startedAt) state.punch = data.punch;
       if (data.sync) state.sync = Object.assign({}, EMPTY_SYNC, data.sync);
-      if (typeof data.aiKey === 'string') state.aiKey = data.aiKey;
-      if (typeof data.aiModel === 'string') state.aiModel = data.aiModel;
+      // Le chiavi API le teneva il browser, quando le richieste partivano da
+      // qui. Ora parte tutto dal server e quella chiave non serve più a
+      // niente: lasciarla in localStorage sarebbe un segreto di qualcun altro
+      // dimenticato su un dispositivo. Si cancella al primo avvio utile.
+      if (data.aiKey) { state.aiKey = ''; setTimeout(save, 0); }
     } catch (err) {
       console.warn('Dati locali illeggibili, riparto da zero.', err);
     }
@@ -315,13 +317,6 @@
         deletedCheckins: uniq(state.sync.deletedCheckins.concat([id])),
         dirtyCheckins: state.sync.dirtyCheckins.filter(function (x) { return x !== id; })
       });
-      commit();
-    },
-
-    /* --- IA opzionale --- */
-    setAi: function (key, model) {
-      state.aiKey = key || '';
-      if (model) state.aiModel = model;
       commit();
     },
 

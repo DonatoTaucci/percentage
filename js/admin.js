@@ -154,9 +154,56 @@
     });
   }
 
+  /* ---------------- ruoli ----------------
+
+     Il catalogo sta sul server e non qui: aggiungere un ruolo dev'essere una
+     riga nel database, non un rilascio del sito. Qui si legge e basta. */
+
+  var catalogo = null;
+
+  function ruoli() {
+    if (catalogo) return Promise.resolve(catalogo);
+    var s = sb();
+    if (!s) return Promise.resolve([]);
+    return s.from('ruoli').select('*').order('ordine').then(function (r) {
+      if (r.error) throw new Error(r.error.message);
+      catalogo = r.data || [];
+      return catalogo;
+    });
+  }
+
+  /* Assegnare due volte lo stesso ruolo non è un errore da mostrare: è un
+     doppio clic. onConflict lo rende un'operazione idempotente. */
+  function assegna(userId, ruolo) {
+    var s = sb();
+    if (!s) return Promise.reject(new Error('Non connesso.'));
+    var io = global.Cloud.stato().utente;
+    return s.from('utenti_ruoli').upsert({
+      user_id: userId,
+      ruolo: ruolo,
+      assegnato_da: (io && io.id) || '',
+      assegnato_il: new Date().toISOString()
+    }, { onConflict: 'user_id,ruolo' }).then(function (r) {
+      if (r.error) throw new Error(r.error.message);
+      return true;
+    });
+  }
+
+  function togli(userId, ruolo) {
+    var s = sb();
+    if (!s) return Promise.reject(new Error('Non connesso.'));
+    return s.from('utenti_ruoli').delete().eq('user_id', userId).eq('ruolo', ruolo).then(function (r) {
+      if (r.error) throw new Error(r.error.message);
+      return true;
+    });
+  }
+
   global.Admin = {
     TABELLE: TABELLE,
     stato: function () { return stato; },
+    ruoli: ruoli,
+    assegna: assegna,
+    togli: togli,
     verifica: verifica,
     diagnosi: diagnosi,
     utenti: utenti,

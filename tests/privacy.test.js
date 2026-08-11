@@ -83,17 +83,18 @@ const { chromium } = require('playwright');
   }));
   ok('dato il consenso il questionario si apre, con la data', dopo, { domande: true, registrato: true, conData: true });
 
-  /* 3. L'IA: la chiave configurata non basta, serve il consenso. */
+  /* 3. L'IA: l'accesso da solo non basta, serve il consenso. La richiesta
+        parte verso la funzione sul server, che qui non esiste: si conta se
+        qualcuno prova a chiamarla, ed è proprio quello che non deve accadere. */
   let chiamate = 0;
-  await page.route('https://api.anthropic.com/**', (route) => { chiamate++; route.abort(); });
+  await page.route('**/functions/v1/**', (route) => { chiamate++; route.abort(); });
   await page.evaluate(() => {
-    window.Store.setAi('sk-ant-finta', 'claude-opus-5');
     window.App.ctx.quizOpen = false;
     window.App.ctx.chat = [];
     window.App.go('benessere');
   });
   await page.waitForTimeout(250);
-  ok('con la chiave ma senza consenso il campo non c\'è',
+  ok('con l\'accesso ma senza consenso il campo non c\'è',
     await page.evaluate(() => ({ riquadro: !!document.querySelector('.consenso'), campo: !!document.getElementById('ai-input') })),
     { riquadro: true, campo: false });
 
@@ -114,6 +115,50 @@ const { chromium } = require('playwright');
   ok('dato il consenso compare il campo, e la risposta è etichettata',
     await page.evaluate(() => ({ campo: !!document.getElementById('ai-input'), etichetta: !!document.querySelector('.msg-ia-tag') })),
     { campo: true, etichetta: true });
+
+  /* 3b. Quota e ruoli, e i messaggi di errore che ne derivano.
+
+        Sono la parte che l'utente legge quando qualcosa non va, ed è quella
+        in cui è più facile mostrargli un codice al posto di una frase. */
+  await page.evaluate(() => {
+    window.AI.stato = () => ({ caricato: true, usati: 28, limite: 40,
+      ruoli: [{ codice: 'tester', etichetta: 'Tester', colore: 'info', descrizione: 'prova' }] });
+    window.App.render();
+  });
+  await page.waitForTimeout(200);
+  ok('quota e distintivo del ruolo sono in pagina',
+    await page.evaluate(() => {
+      const t = document.getElementById('main').textContent;
+      return { quota: t.includes('12 messaggi rimasti'), ruolo: t.includes('Tester') };
+    }),
+    { quota: true, ruolo: true });
+
+  // Quota esaurita: è un limite, non un guasto, e va detto con i numeri.
+  await page.evaluate(() => {
+    window.Cloud.chiamaFunzione = () => Promise.reject(
+      Object.assign(new Error('quota-esaurita'), { dati: { limite: 40, usati: 40 } }));
+    window.App.ctx.chat = [];
+    window.App.aiSend('e adesso?');
+  });
+  await page.waitForTimeout(400);
+  ok('quota esaurita: messaggio comprensibile, non un codice',
+    await page.evaluate(() => {
+      const ultimo = window.App.ctx.chat[window.App.ctx.chat.length - 1] || {};
+      return { dice40: /40/.test(ultimo.content || ''), niente_codice: !/quota-esaurita/.test(ultimo.content || '') };
+    }),
+    { dice40: true, niente_codice: true });
+
+  // Servizio non configurato: è un problema di chi gestisce, non dell'utente.
+  await page.evaluate(() => {
+    window.Cloud.chiamaFunzione = () => Promise.reject(Object.assign(new Error('chiave-mancante'), { dati: {} }));
+    window.App.ctx.chat = [];
+    window.App.aiSend('ci sei?');
+  });
+  await page.waitForTimeout(400);
+  ok('servizio spento: lo dice, senza incolpare l\'utente',
+    await page.evaluate(() => /non è ancora configurato/.test((window.App.ctx.chat[1] || {}).content || '')), true);
+
+  await page.evaluate(() => { window.App.ctx.chat = []; window.App.render(); });
 
   /* 4. La revoca è un clic come il consenso, e svuota la conversazione. */
   await page.locator('[data-action="revoca-ia"]').first().click();

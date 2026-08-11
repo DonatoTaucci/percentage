@@ -123,6 +123,45 @@ accesso: gli account stanno su Clerk, e il database non ne saprebbe nulla finch�
 persona non sincronizza qualcosa. Chi si è registrato prima di questa modifica comparirà
 al primo rientro.
 
+### Assistente IA (Gemini) e quota
+
+La conversazione della sezione Benessere non parte dal browser: la serve la Edge Function
+`benessere-ia` del progetto Supabase, già distribuita. Perché risponda serve una cosa sola,
+da fare una volta:
+
+1. crea una chiave API su **aistudio.google.com** (progetto Google Cloud con fatturazione
+   attiva se vuoi uscire dal piano gratuito);
+2. nel pannello Supabase, **Edge Functions → benessere-ia → Secrets**, aggiungi
+   `GEMINI_API_KEY` con quel valore. Opzionale: `GEMINI_MODEL` per cambiare modello senza
+   toccare il codice (default `gemini-2.5-flash`).
+
+Finché il secret manca la funzione risponde `chiave-mancante` e il sito lo dice per esteso
+("il servizio non è ancora configurato"), invece di mostrare un errore generico.
+
+La chiave non arriva mai al browser e il modello non è selezionabile dall'utente. Il token di
+Clerk viene inoltrato al database, che lo verifica e ricava l'identità: la funzione ha
+`verify_jwt` disattivato perché l'autorizzazione la fa PostgREST, nello stesso posto in cui
+stanno già le policy per riga.
+
+**Quota.** Ogni account ha 40 messaggi al mese. Il conteggio sta nella tabella `uso_ia`, che
+nessun client può scrivere: la incrementa solo `consuma_credito_ia()`, dove controllo e
+incremento sono la stessa istruzione. Per cambiare la quota di tutti basta modificare
+`quota_ia` nella riga `utente` della tabella `ruoli`.
+
+### Ruoli
+
+La tabella `ruoli` è il catalogo: `codice`, `etichetta`, `descrizione` e i vantaggi
+(`quota_ia`, `ia_illimitata`, `salta_abbonamento`, `amministratore`, `colore`, `ordine`).
+Aggiungere un ruolo nuovo è una INSERT dal pannello Supabase; i vantaggi restano quelli
+previsti, perché sono i soli che il codice sa applicare.
+
+`utenti_ruoli` collega persone e ruoli, uno o più d'uno. Si assegnano dalla scheda **Admin**,
+toccando il ruolo nella card dell'utente. Con più ruoli vale sempre il vantaggio migliore.
+
+Un ruolo con `amministratore = true` dà accesso alla scheda Admin esattamente come la tabella
+`admins`: le due strade convivono, quindi l'elenco storico continua a valere e i nuovi
+amministratori si nominano dall'interfaccia.
+
 ### Come verificare che funzioni
 
 1. Apri il sito, **Impostazioni → Account → Accedi**, inserisci la tua email e il codice.

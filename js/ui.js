@@ -842,9 +842,9 @@
     html += '<h4>Serve il tuo consenso per usare l\'intelligenza artificiale</h4>';
     html += '<p>La conversazione è l\'unica parte dell\'applicazione che manda dei dati fuori dal tuo dispositivo. Vale la pena sapere esattamente quali.</p>';
     html += '<ul>';
-    html += '<li>Viene inviato ad Anthropic un riepilogo aggregato: ore, media settimanale, straordinari, giorni di riposo, turni notturni e il punteggio dell\'ultimo check-in.</li>';
+    html += '<li>Viene inviato a Google, che fornisce il modello, un riepilogo aggregato: ore, media settimanale, straordinari, giorni di riposo, turni notturni e il punteggio dell\'ultimo check-in.</li>';
     html += '<li>Non vengono inviati i singoli turni, le note che scrivi, la tua posizione, la tua email né il tuo nome utente.</li>';
-    html += '<li>Le richieste partono dal tuo browser con la tua chiave API e non passano dal server di questa applicazione.</li>';
+    html += '<li>La richiesta passa dal nostro server, che aggiunge le istruzioni per il modello e conta i messaggi del mese. Il testo della conversazione non viene conservato.</li>';
     html += '<li>Stai scrivendo a un modello linguistico, non a una persona: può sbagliare, non è un medico e non decide niente al posto tuo.</li>';
     html += '</ul>';
     html += '<div class="row" style="gap:8px">';
@@ -888,37 +888,59 @@
     return html;
   }
 
+  /* Quota del mese, come riga leggibile. Restituisce '' quando non si sa
+     ancora niente: un "0 di 0" mentre il dato arriva sembra un divieto. */
+  function rigaQuota() {
+    var s = AI.stato();
+    if (!s.caricato) return '';
+    if (s.limite === -1) return T('Messaggi illimitati con il tuo ruolo.');
+    var restanti = Math.max(0, (s.limite || 0) - (s.usati || 0));
+    return T('{restanti} messaggi rimasti questo mese, su {limite}.', { restanti: restanti, limite: s.limite || 0 });
+  }
+
+  function distintiviRuoli() {
+    var r = AI.stato().ruoli || [];
+    if (!r.length) return '';
+    return '<div class="row" style="gap:6px;margin-bottom:10px">' + r.map(function (x) {
+      return '<span class="badge ' + esc(x.colore || '') + '" data-no-i18n title="' + esc(x.descrizione || '') + '">' + esc(x.etichetta) + '</span>';
+    }).join('') + '</div>';
+  }
+
   function aiPanel(ctx) {
-    var configured = AI.hasKey();
     var html = '<div class="card" style="margin-top:14px">';
     html += '<div class="card-title">Approfondimento con l\'IA (opzionale)</div>';
 
-    if (!configured) {
+    // Senza account non c'è quota da contare, quindi non c'è conversazione.
+    if (!AI.disponibile()) {
       html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">' +
         'L\'analisi qui sopra è calcolata interamente sul tuo dispositivo e non richiede alcuna configurazione. ' +
-        'Se vuoi anche una conversazione libera che ragioni sui tuoi numeri, puoi collegare una chiave API di Claude ' +
-        'dalle Impostazioni: resta salvata solo sul tuo dispositivo e le richieste vanno direttamente ad Anthropic.</p>';
+        'La conversazione libera che ragiona sui tuoi numeri richiede invece l\'accesso, perché i messaggi disponibili ogni mese sono legati al tuo account.</p>';
       html += '<button class="btn sm" data-action="goto" data-view="impostazioni">Vai alle impostazioni</button>';
       html += '</div>';
       return html;
     }
 
-    // Chiave configurata ma consenso mai dato: la chiave da sola non basta,
-    // il consenso è un atto separato e va chiesto prima della prima richiesta.
+    // Consenso mai dato: è un atto separato, e va chiesto prima della prima
+    // richiesta perché è la prima richiesta a far uscire i dati dal dispositivo.
     if (!Store.consenso('ia')) {
       html += consensoIA();
       html += '</div>';
       return html;
     }
 
+    html += distintiviRuoli();
+
     // Dichiarazione di trasparenza: chi legge deve sapere subito con che cosa
     // sta parlando, non dedurlo dal tono delle risposte.
-    html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">Stai per scrivere a un sistema di intelligenza artificiale: il modello Claude di Anthropic, non una persona. Le risposte possono contenere errori e non sostituiscono un parere medico.</p>';
+    html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">Stai per scrivere a un sistema di intelligenza artificiale: il modello Gemini di Google, non una persona. Le risposte possono contenere errori e non sostituiscono un parere medico.</p>';
 
     var chat = ctx.chat || [];
     html += '<div class="chat" id="chat">';
     if (!chat.length) {
-      html += '<div class="msg ai">Posso ragionare sui tuoi dati: ore, straordinari, giorni consecutivi e ultimo check-in. Chiedimi qualcosa, oppure usa "Analizza i miei dati" per una lettura completa.</div>';
+      // Il nome del pulsante non si cita: in un'altra lingua sarebbe tradotto
+      // di qua e non di là, e la frase manderebbe a cercare un pulsante che
+      // non esiste. "Qui sotto" resta vero in tutte le lingue.
+      html += '<div class="msg ai">Posso ragionare sui tuoi dati: ore, straordinari, giorni consecutivi e ultimo check-in. Chiedimi qualcosa, oppure usa il pulsante qui sotto per una lettura completa del periodo.</div>';
     }
     chat.forEach(function (m) {
       if (m.role === 'user') {
@@ -941,7 +963,9 @@
     html += '<button class="btn sm ghost" data-action="ai-analyze"' + (ctx.aiBusy ? ' disabled' : '') + '>Analizza i miei dati</button>';
     if (chat.length) html += '<button class="btn sm ghost" data-action="ai-clear">Svuota conversazione</button>';
     html += '</div>';
-    html += '<p class="tiny muted" style="margin:10px 0 0">I dati inviati sono il riepilogo aggregato dei turni e l\'ultimo check-in, non i singoli turni né le note.</p>';
+    var quota = rigaQuota();
+    if (quota) html += '<p class="tiny muted" style="margin:10px 0 0" data-no-i18n>' + esc(quota) + '</p>';
+    html += '<p class="tiny muted" style="margin:4px 0 0">I dati inviati sono il riepilogo aggregato dei turni e l\'ultimo check-in, non i singoli turni né le note.</p>';
     html += '<div class="row" style="gap:8px;margin-top:8px">' +
       '<button class="btn sm ghost" data-action="doc" data-doc="ia">Come viene usata l\'IA</button>' +
       '<button class="btn sm ghost" data-action="revoca-ia">Revoca il consenso</button>' +
@@ -1086,6 +1110,62 @@
       '</td></tr>';
   }
 
+  /* Distintivi dei ruoli di un utente, con l'etichetta presa dal catalogo:
+     nella tabella c'è il codice, che è quello che il database conosce. */
+  function badgeRuoli(codici, catalogo) {
+    if (!codici || !codici.length) return '<span class="tiny muted">—</span>';
+    var per = {};
+    (catalogo || []).forEach(function (r) { per[r.codice] = r; });
+    return codici.map(function (c) {
+      var def = per[c] || {};
+      return '<span class="badge ' + esc(def.colore || '') + '" data-no-i18n>' + esc(def.etichetta || c) + '</span>';
+    }).join(' ');
+  }
+
+  /* Solo cifre: "12 / 200" non ha bisogno di traduzione e non produce una
+     chiave per ogni possibile frazione. */
+  function usoIA(u) {
+    return (u.ia_mese || 0) + ' / ' + (u.ia_limite === -1 ? '∞' : (u.ia_limite || 0));
+  }
+
+  /* Assegnazione dei ruoli: il catalogo intero, con acceso ciò che l'utente
+     ha già. Un elenco a tendina nasconderebbe proprio l'informazione che
+     serve mentre si assegna, cioè che cosa ha già. */
+  function cardRuoli(ctx, userId) {
+    var catalogo = ctx.adminRuoli;
+    var utente = (ctx.adminUtenti || []).filter(function (u) { return u.user_id === userId; })[0];
+    var attuali = (utente && utente.ruoli) || [];
+
+    var html = '<div class="card"><div class="card-title">Ruoli e vantaggi</div>';
+    if (!catalogo) {
+      html += '<p class="muted small" style="margin:0">' + esc(T('Caricamento…')) + '</p></div>';
+      return html;
+    }
+    html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">Tocca un ruolo per assegnarlo o toglierlo. Con più ruoli vale il vantaggio migliore. Il catalogo si modifica dalla tabella "ruoli" nel pannello Supabase.</p>';
+    html += '<div class="chips">';
+    catalogo.forEach(function (r) {
+      var on = attuali.indexOf(r.codice) >= 0;
+      html += '<button type="button" class="chip' + (on ? ' on' : '') + '"' +
+        ' data-action="admin-ruolo" data-utente="' + esc(userId) + '" data-ruolo="' + esc(r.codice) + '"' +
+        ' data-attivo="' + (on ? '1' : '0') + '"' +
+        ' data-no-i18n title="' + esc(r.descrizione || '') + '">' + esc(r.etichetta) + '</button>';
+    });
+    html += '</div>';
+    html += '<div class="table-wrap" style="margin-top:14px"><table><thead><tr>' +
+      '<th>' + esc(T('Ruolo')) + '</th><th>' + esc(T('Messaggi IA al mese')) + '</th>' +
+      '<th>' + esc(T('Senza abbonamento')) + '</th><th>' + esc(T('Amministratore')) + '</th>' +
+      '</tr></thead><tbody>';
+    catalogo.forEach(function (r) {
+      html += '<tr><td data-no-i18n>' + esc(r.etichetta) + '</td>' +
+        '<td>' + (r.ia_illimitata ? esc(T('illimitati')) : (r.quota_ia === null ? '—' : r.quota_ia)) + '</td>' +
+        '<td>' + (r.salta_abbonamento ? esc(T('sì')) : '—') + '</td>' +
+        '<td>' + (r.amministratore ? esc(T('sì')) : '—') + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '</div>';
+    return html;
+  }
+
   function amministrazione(ctx) {
     var st = Admin.stato();
     var html = '';
@@ -1119,7 +1199,9 @@
     } else {
       html += '<div class="table-wrap" style="margin-top:12px"><table><thead><tr>' +
         '<th>' + esc(T('Utente')) + '</th><th>' + esc(T('Nome utente')) + '</th>' +
+        '<th>' + esc(T('Ruoli')) + '</th>' +
         '<th>' + esc(T('Turni')) + '</th><th>' + esc(T('Check-in')) + '</th>' +
+        '<th>' + esc(T('IA nel mese')) + '</th>' +
         '<th>' + esc(T('Timbratura')) + '</th><th>' + esc(T('Ultima attività')) + '</th><th></th>' +
         '</tr></thead><tbody>';
       utenti.forEach(function (u) {
@@ -1131,7 +1213,9 @@
             (mio ? ' <span class="badge info">' + esc(T('tu')) + '</span>' : '') +
             (u.email ? '<br><code class="tiny muted" data-no-i18n>' + esc(u.user_id) + '</code>' : '') + '</td>' +
           '<td data-no-i18n>' + esc(u.username || '—') + '</td>' +
+          '<td>' + badgeRuoli(u.ruoli, ctx.adminRuoli) + '</td>' +
           '<td>' + u.turni + '</td><td>' + u.checkin + '</td>' +
+          '<td class="tiny" data-no-i18n>' + esc(usoIA(u)) + '</td>' +
           '<td>' + (u.timbratura_aperta ? esc(T('aperta')) : '—') + '</td>' +
           '<td class="tiny muted">' + esc(new Date(u.ultima_attivita).toLocaleString(I18n.lingua())) + '</td>' +
           '<td><button class="btn sm" data-action="admin-apri" data-utente="' + esc(u.user_id) + '">' + esc(T('Apri')) + '</button></td>' +
@@ -1152,8 +1236,11 @@
       '<h2 style="margin:0;font-size:17px">' + esc(T('Dati di')) + ' <code style="font-size:13px">' + esc(d.userId) + '</code></h2>' +
       '<button class="btn sm" data-action="admin-chiudi">' + esc(T('Chiudi')) + '</button></div>';
 
+    /* ruoli */
+    html += cardRuoli(ctx, d.userId);
+
     /* turni */
-    html += '<div class="card"><div class="row-between"><div class="card-title" style="margin:0">' +
+    html += '<div class="card" style="margin-top:14px"><div class="row-between"><div class="card-title" style="margin:0">' +
       esc(T('Turni')) + ' (' + d.shifts.length + ')</div>' +
       '<button class="btn sm primary" data-action="admin-nuovo-turno">' + esc(T('+ Nuovo turno')) + '</button></div>';
     if (d.shifts.length === 0) {
@@ -1336,23 +1423,21 @@
     html += '<p class="tiny muted" style="margin:10px 0 0">La stima economica è indicativa: non tiene conto di fasce orarie, festivi, contributi o trattenute.</p>';
     html += '</div>';
 
-    /* IA */
-    html += '<div class="card" style="margin-top:14px"><div class="card-title">Assistente IA (opzionale)</div>';
-    html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">L\'analisi del benessere funziona senza chiave. Aggiungendo una chiave API di Claude sblocchi la conversazione libera nella sezione Benessere. ' +
-      'La chiave viene salvata <strong>solo</strong> nel browser di questo dispositivo e usata per chiamare direttamente api.anthropic.com.</p>';
-    html += '<div class="grid grid-2">';
-    html += '<label class="field">Chiave API<input type="password" id="ai-key" placeholder="sk-ant-..." value="' + esc(Store.get().aiKey) + '"></label>';
-    html += '<label class="field">Modello' +
-      '<select id="ai-model">' +
-      ['claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5'].map(function (m) {
-        return '<option value="' + m + '"' + (Store.get().aiModel === m ? ' selected' : '') + '>' + m + '</option>';
-      }).join('') +
-      '</select></label>';
-    html += '</div>';
-    html += '<div class="row" style="margin-top:12px;gap:8px">' +
-      '<button class="btn sm primary" data-action="save-ai">Salva</button>' +
-      (Store.get().aiKey ? '<button class="btn sm danger" data-action="clear-ai">Rimuovi chiave</button>' : '') +
-      '</div>';
+    /* IA — niente più da configurare: la chiave sta sul server, il modello
+       lo decide il servizio, all'utente resta il numero che gli interessa
+       davvero, cioè quanti messaggi gli restano. */
+    html += '<div class="card" style="margin-top:14px"><div class="card-title">Assistente IA</div>';
+    html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">Punteggio di benessere e consigli sono calcolati sul tuo dispositivo e non hanno bisogno di niente. La conversazione libera nella sezione Benessere passa invece dal nostro server, che parla con il modello per conto tuo: non c\'è nessuna chiave da procurarsi e nessuna spesa a tuo carico.</p>';
+
+    if (!connesso) {
+      html += '<p class="small muted" style="margin:0 0 12px">Serve l\'accesso: i messaggi disponibili ogni mese sono legati al tuo account.</p>';
+    } else {
+      html += distintiviRuoli();
+      var quotaImp = rigaQuota();
+      html += '<p class="small" style="margin:0 0 4px" data-no-i18n>' + esc(quotaImp || T('Caricamento…')) + '</p>';
+      html += '<p class="tiny muted" style="margin:0 0 12px">In beta la conversazione è gratuita. Se un giorno diventerà a pagamento, chi ha un ruolo assegnato lo saprà prima.</p>';
+      html += '<button class="btn sm" data-action="goto" data-view="benessere">Vai alla conversazione</button>';
+    }
     html += '</div>';
 
     /* dati */
@@ -1364,7 +1449,7 @@
       Store.shifts().length + ' turni e ' + Store.checkins().length + ' check-in salvati su questo dispositivo.</p>';
     html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">' +
       (connesso
-        ? 'Con l\'accesso effettuato, turni, check-in e impostazioni vengono copiati anche sul server per ritrovarli sugli altri tuoi dispositivi. Le note dei turni fanno parte della copia; posizione e chiave dell\'IA no, restano qui.'
+        ? 'Con l\'accesso effettuato, turni, check-in e impostazioni vengono copiati anche sul server per ritrovarli sugli altri tuoi dispositivi. Le note dei turni fanno parte della copia; la posizione del luogo di lavoro no, resta qui.'
         : 'Senza accesso i dati restano soltanto in questo browser: se lo svuoti, spariscono. Conviene esportare un backup ogni tanto.') +
       '</p>';
     html += '<div class="row" style="gap:8px">' +
