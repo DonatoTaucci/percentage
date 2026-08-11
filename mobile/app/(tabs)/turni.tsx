@@ -197,6 +197,15 @@ export default function Turni() {
                     {C.parseTime(bozza.end!)! < C.parseTime(bozza.start!)! ? ' · a cavallo di mezzanotte' : ''}
                   </Txt>
                 )}
+                {/* Il turno parziale va spiegato qui, dove serve: chi si accorge
+                    ora di non aver timbrato deve sapere che può salvare a metà. */}
+                <Nota>
+                  Ti sei dimenticato di timbrare? Puoi inserire anche un orario solo: scrivi quello
+                  che ricordi con certezza e lascia vuoto l'altro. Il turno viene salvato lo stesso,
+                  resta segnato «Da completare» e vale zero ore — l'orario mancante non viene
+                  inventato, altrimenti le percentuali racconterebbero una giornata che non hai
+                  fatto. Quando lo ricordi, riapri il turno e aggiungi l'orario che manca.
+                </Nota>
               </>
             )}
 

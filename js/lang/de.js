@@ -409,3 +409,19 @@ Object.assign(window.I18N.de, {
   "Sei a {d} dal punto salvato (raggio {r} m): dentro.": "Du bist {d} vom gespeicherten Punkt entfernt (Radius {r} m): innerhalb.",
   "Sei a {d} dal punto salvato (raggio {r} m): fuori.": "Du bist {d} vom gespeicherten Punkt entfernt (Radius {r} m): außerhalb."
 });
+
+/* Spiegazione del turno parziale nell'inserimento manuale. */
+Object.assign(window.I18N.de, {
+  "Ti sei dimenticato di timbrare? Puoi inserire anche un orario solo.": "Vergessen zu stempeln? Du kannst auch nur eine der beiden Zeiten eintragen.",
+  "Scrivi quello che ricordi con certezza e lascia vuoto l'altro: il turno viene salvato lo stesso.": "Trage die Zeit ein, an die du dich sicher erinnerst, und lass die andere leer: die Schicht wird trotzdem gespeichert.",
+  "Finché manca un orario il turno resta segnato «Da completare» e vale zero ore. L'orario mancante non viene inventato, altrimenti le percentuali racconterebbero una giornata che non hai fatto.": "Solange eine Zeit fehlt, bleibt die Schicht als «Zu vervollständigen» markiert und zählt null Stunden. Die fehlende Zeit wird nicht erfunden, sonst würden die Prozentwerte einen Tag zeigen, den du nie gearbeitet hast.",
+  "Quando lo ricordi, riapri il turno dalla lista e aggiungi l'orario che manca: da quel momento le ore vengono conteggiate normalmente.": "Wenn du dich erinnerst, öffne die Schicht wieder aus der Liste und ergänze die fehlende Zeit: ab dann werden die Stunden normal gezählt.",
+  "Con l'inserimento manuale puoi registrare anche solo l'entrata o solo l'uscita, e completare il turno più avanti.": "Mit der manuellen Eingabe kannst du auch nur den Beginn oder nur das Ende erfassen und die Schicht später vervollständigen."
+});
+
+/* Anteprima delle ore nel form del turno. */
+Object.assign(window.I18N.de, {
+  "Ore lavorate: {ore}": "Gearbeitete Stunden: {ore}",
+  "{pct} del previsto": "{pct} des Solls",
+  "turno a cavallo di mezzanotte": "Schicht über Mitternacht hinaus"
+});

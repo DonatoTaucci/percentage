@@ -64,7 +64,8 @@ il collegamento fra Clerk e Supabase).
   dimenticato di timbrare. Il turno resta marcato *Da completare*, vale zero ore finché manca
   l'altro estremo — l'orario mancante non viene deciso al posto tuo, perché inventarlo
   falserebbe proprio le percentuali per cui esiste l'app — e il registro del mese dice quanti
-  ne restano da sistemare.
+  ne restano da sistemare. La possibilità è spiegata per esteso dentro il form di inserimento,
+  perché una funzione che nessuno scopre è come se non ci fosse.
 - Tipi di giornata: lavoro, ferie, permesso, malattia, festività, riposo. Le assenze retribuite
   contano come ore previste coperte (e coprono solo la parte di giornata non lavorata).
 - Percentuale di ore lavorate **giornaliera, settimanale e mensile**. Per i periodi ancora in corso

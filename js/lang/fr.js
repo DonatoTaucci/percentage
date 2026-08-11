@@ -409,3 +409,19 @@ Object.assign(window.I18N.fr, {
   "Sei a {d} dal punto salvato (raggio {r} m): dentro.": "Tu es à {d} du point enregistré (rayon {r} m) : à l'intérieur.",
   "Sei a {d} dal punto salvato (raggio {r} m): fuori.": "Tu es à {d} du point enregistré (rayon {r} m) : à l'extérieur."
 });
+
+/* Spiegazione del turno parziale nell'inserimento manuale. */
+Object.assign(window.I18N.fr, {
+  "Ti sei dimenticato di timbrare? Puoi inserire anche un orario solo.": "Tu as oublié de pointer ? Tu peux saisir une seule heure.",
+  "Scrivi quello che ricordi con certezza e lascia vuoto l'altro: il turno viene salvato lo stesso.": "Note celle dont tu es sûr et laisse l'autre vide : le service est enregistré quand même.",
+  "Finché manca un orario il turno resta segnato «Da completare» e vale zero ore. L'orario mancante non viene inventato, altrimenti le percentuali racconterebbero una giornata che non hai fatto.": "Tant qu'une heure manque, le service reste marqué « À compléter » et vaut zéro heure. L'heure manquante n'est jamais inventée, sinon les pourcentages décriraient une journée que tu n'as pas faite.",
+  "Quando lo ricordi, riapri il turno dalla lista e aggiungi l'orario che manca: da quel momento le ore vengono conteggiate normalmente.": "Quand tu t'en souviens, rouvre le service depuis la liste et ajoute l'heure qui manque : à partir de là, les heures sont comptées normalement.",
+  "Con l'inserimento manuale puoi registrare anche solo l'entrata o solo l'uscita, e completare il turno più avanti.": "La saisie manuelle permet aussi d'enregistrer seulement l'arrivée ou seulement la sortie, et de compléter le service plus tard."
+});
+
+/* Anteprima delle ore nel form del turno. */
+Object.assign(window.I18N.fr, {
+  "Ore lavorate: {ore}": "Heures travaillées : {ore}",
+  "{pct} del previsto": "{pct} du prévu",
+  "turno a cavallo di mezzanotte": "service à cheval sur minuit"
+});

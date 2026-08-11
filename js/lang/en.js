@@ -412,3 +412,19 @@ Object.assign(window.I18N.en, {
   "Sei a {d} dal punto salvato (raggio {r} m): dentro.": "You are {d} from the saved point (radius {r} m): inside.",
   "Sei a {d} dal punto salvato (raggio {r} m): fuori.": "You are {d} from the saved point (radius {r} m): outside."
 });
+
+/* Spiegazione del turno parziale nell'inserimento manuale. */
+Object.assign(window.I18N.en, {
+  "Ti sei dimenticato di timbrare? Puoi inserire anche un orario solo.": "Forgot to clock in or out? You can enter just one of the two times.",
+  "Scrivi quello che ricordi con certezza e lascia vuoto l'altro: il turno viene salvato lo stesso.": "Write down the one you remember for certain and leave the other empty: the shift is saved anyway.",
+  "Finché manca un orario il turno resta segnato «Da completare» e vale zero ore. L'orario mancante non viene inventato, altrimenti le percentuali racconterebbero una giornata che non hai fatto.": "While a time is missing the shift stays marked «To complete» and is worth zero hours. The missing time is never made up, otherwise the percentages would describe a day you never worked.",
+  "Quando lo ricordi, riapri il turno dalla lista e aggiungi l'orario che manca: da quel momento le ore vengono conteggiate normalmente.": "When you remember it, reopen the shift from the list and add the missing time: from then on the hours are counted normally.",
+  "Con l'inserimento manuale puoi registrare anche solo l'entrata o solo l'uscita, e completare il turno più avanti.": "Manual entry also lets you record only the start or only the end, and complete the shift later."
+});
+
+/* Anteprima delle ore nel form del turno. */
+Object.assign(window.I18N.en, {
+  "Ore lavorate: {ore}": "Hours worked: {ore}",
+  "{pct} del previsto": "{pct} of target",
+  "turno a cavallo di mezzanotte": "shift running past midnight"
+});

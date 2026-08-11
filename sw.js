@@ -9,7 +9,7 @@
    browser hanno continuato a leggere vuota dopo che era stata aggiunta.
    Sono file di pochi kB: quando la rete c'è, riprenderli costa poco;
    quando non c'è, la copia in cache resta e il sito funziona offline. */
-var CACHE = 'percentage-v6';
+var CACHE = 'percentage-v7';
 var ASSETS = [
   './',
   './index.html',

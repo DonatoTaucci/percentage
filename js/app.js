@@ -175,10 +175,12 @@
     var min = Calc.shiftMinutes({ start: start, end: end, breakMin: br, tipo: 'lavoro' }, Store.settings());
     if (!min) { prev.textContent = ''; return; }
     var target = Store.settings().oreGiornaliere * 60;
-    prev.textContent = 'Ore lavorate: ' + Calc.fmtDuration(min) +
-      (target > 0 ? ' · ' + Calc.fmtPct((min / target) * 100) + ' del previsto' : '') +
-      (Calc.parseTime(end) < Calc.parseTime(start) ? ' · turno a cavallo di mezzanotte' : '');
-    I18n.traduciDOM(prev);
+    // Tradotto pezzo per pezzo: la durata composta ("8h 30m") produrrebbe una
+    // chiave diversa per ogni orario, e nessuna sarebbe nel dizionario.
+    var parti = [T('Ore lavorate: {ore}', { ore: Calc.fmtDuration(min) })];
+    if (target > 0) parti.push(T('{pct} del previsto', { pct: Calc.fmtPct((min / target) * 100) }));
+    if (Calc.parseTime(end) < Calc.parseTime(start)) parti.push(T('turno a cavallo di mezzanotte'));
+    prev.textContent = parti.join(' · ');
   }
 
   function submitShift(e) {

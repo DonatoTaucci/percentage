@@ -300,6 +300,7 @@
         html += '<button class="btn sm ghost" data-action="quick-standard">Giornata standard</button>';
       }
       html += '</div>';
+      html += '<p class="tiny muted" style="margin:8px 0 0">Con l\'inserimento manuale puoi registrare anche solo l\'entrata o solo l\'uscita, e completare il turno più avanti.</p>';
       html += '</div></div>';
     }
 
@@ -1266,8 +1267,14 @@
       (shift.breakMin !== undefined ? shift.breakMin : s.pausaPredefinita) + '"></label>';
     html += '</div>';
     html += '<p class="tiny muted" style="margin:8px 0 0" id="preview-ore"></p>';
-    html += '<p class="tiny muted" style="margin:6px 0 0">' +
-      esc(T('Puoi lasciarne vuoto uno e completarlo più avanti: finché manca, il turno non conta ore.')) + '</p>';
+    // Il turno parziale è la risposta a un caso reale (ci si dimentica di
+    // timbrare), quindi va spiegato dove serve: dentro il form, non altrove.
+    html += '<div class="note" style="margin-top:12px">';
+    html += '<p style="margin:0"><strong>Ti sei dimenticato di timbrare? Puoi inserire anche un orario solo.</strong></p>';
+    html += '<p style="margin:6px 0 0">Scrivi quello che ricordi con certezza e lascia vuoto l\'altro: il turno viene salvato lo stesso.</p>';
+    html += '<p style="margin:6px 0 0">Finché manca un orario il turno resta segnato «Da completare» e vale zero ore. L\'orario mancante non viene inventato, altrimenti le percentuali racconterebbero una giornata che non hai fatto.</p>';
+    html += '<p style="margin:6px 0 0">Quando lo ricordi, riapri il turno dalla lista e aggiungi l\'orario che manca: da quel momento le ore vengono conteggiate normalmente.</p>';
+    html += '</div>';
     html += '</div>';
 
     html += '<label class="field">Note (facoltative)<input type="text" name="note" maxlength="200" value="' + esc(shift.note || '') + '"></label>';

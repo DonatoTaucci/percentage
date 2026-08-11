@@ -413,3 +413,19 @@ Object.assign(window.I18N.es, {
   "Sei a {d} dal punto salvato (raggio {r} m): dentro.": "Estás a {d} del punto guardado (radio {r} m): dentro.",
   "Sei a {d} dal punto salvato (raggio {r} m): fuori.": "Estás a {d} del punto guardado (radio {r} m): fuera."
 });
+
+/* Spiegazione del turno parziale nell'inserimento manuale. */
+Object.assign(window.I18N.es, {
+  "Ti sei dimenticato di timbrare? Puoi inserire anche un orario solo.": "¿Se te ha olvidado fichar? Puedes introducir también una sola hora.",
+  "Scrivi quello che ricordi con certezza e lascia vuoto l'altro: il turno viene salvato lo stesso.": "Escribe la que recuerdas con certeza y deja vacía la otra: el turno se guarda igualmente.",
+  "Finché manca un orario il turno resta segnato «Da completare» e vale zero ore. L'orario mancante non viene inventato, altrimenti le percentuali racconterebbero una giornata che non hai fatto.": "Mientras falte una hora, el turno queda marcado «Por completar» y vale cero horas. La hora que falta no se inventa: de lo contrario los porcentajes contarían una jornada que no has hecho.",
+  "Quando lo ricordi, riapri il turno dalla lista e aggiungi l'orario che manca: da quel momento le ore vengono conteggiate normalmente.": "Cuando la recuerdes, vuelve a abrir el turno desde la lista y añade la hora que falta: a partir de ese momento las horas se computan con normalidad.",
+  "Con l'inserimento manuale puoi registrare anche solo l'entrata o solo l'uscita, e completare il turno più avanti.": "Con la introducción manual puedes registrar también solo la entrada o solo la salida, y completar el turno más adelante."
+});
+
+/* Anteprima delle ore nel form del turno. */
+Object.assign(window.I18N.es, {
+  "Ore lavorate: {ore}": "Horas trabajadas: {ore}",
+  "{pct} del previsto": "{pct} de lo previsto",
+  "turno a cavallo di mezzanotte": "turno que pasa de la medianoche"
+});
