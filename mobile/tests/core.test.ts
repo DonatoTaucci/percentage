@@ -48,6 +48,15 @@ ok('turno che scavalca la mezzanotte nell\'orario standard',
 ok('9-18 con 60m di pausa', C.shiftMinutes(turno({}), S()), 480);
 ok('turno notturno 22-06 con 30m', C.shiftMinutes(turno({ start: '22:00', end: '06:00', breakMin: 30 }), S()), 450);
 ok('ferie non producono ore', C.shiftMinutes(turno({ tipo: 'ferie', start: '', end: '' }), S()), 0);
+
+// Turno lasciato a metà: si può registrare, ma non inventiamo l'orario che manca.
+ok('solo entrata: zero ore', C.shiftMinutes(turno({ end: '' }), S()), 0);
+ok('solo uscita: zero ore', C.shiftMinutes(turno({ start: '' }), S()), 0);
+ok('solo entrata è incompleto', C.turnoIncompleto(turno({ end: '' })), true);
+ok('solo uscita è incompleto', C.turnoIncompleto(turno({ start: '' })), true);
+ok('turno intero non è incompleto', C.turnoIncompleto(turno({})), false);
+ok('turno vuoto non è incompleto', C.turnoIncompleto(turno({ start: '', end: '' })), false);
+ok('le ferie non sono mai incomplete', C.turnoIncompleto(turno({ tipo: 'ferie', start: '', end: '' })), false);
 ok('formato durata', [C.fmtDuration(495), C.fmtDuration(60), C.fmtDuration(-90)], ['8h 15m', '1h', '−1h 30m']);
 ok('orologio', C.fmtClock(3725), '1:02:05');
 

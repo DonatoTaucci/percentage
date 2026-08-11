@@ -60,6 +60,11 @@ il collegamento fra Clerk e Supabase).
 **Turni e ore**
 - Inserimento manuale di turni con orario di inizio, fine e pausa pranzo; i turni a cavallo di mezzanotte
   sono gestiti automaticamente.
+- **Si può registrare anche un solo orario**, entrata o uscita, per chi si accorge dopo di aver
+  dimenticato di timbrare. Il turno resta marcato *Da completare*, vale zero ore finché manca
+  l'altro estremo — l'orario mancante non viene deciso al posto tuo, perché inventarlo
+  falserebbe proprio le percentuali per cui esiste l'app — e il registro del mese dice quanti
+  ne restano da sistemare.
 - Tipi di giornata: lavoro, ferie, permesso, malattia, festività, riposo. Le assenze retribuite
   contano come ore previste coperte (e coprono solo la parte di giornata non lavorata).
 - Percentuale di ore lavorate **giornaliera, settimanale e mensile**. Per i periodi ancora in corso

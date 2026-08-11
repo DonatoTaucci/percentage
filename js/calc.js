@@ -171,6 +171,22 @@
     return Math.max(0, dur - pausa);
   }
 
+  /* Turno a ore con un solo orario: manca l'entrata o l'uscita.
+
+     Vale zero minuti, perché l'orario mancante non lo inventiamo: dedurlo
+     dall'orario standard falserebbe proprio le percentuali per cui esiste
+     questa applicazione. Va però distinto da una giornata non lavorata,
+     altrimenti chi ha dimenticato di timbrare vede un buco e non sa che è
+     stato lui a lasciarlo a metà. */
+  function turnoIncompleto(shift) {
+    if (!shift) return false;
+    var def = TIPI[shift.tipo] || TIPI.lavoro;
+    if (def.conteggia !== 'ore') return false;
+    var a = parseTime(shift.start);
+    var b = parseTime(shift.end);
+    return (a === null) !== (b === null);
+  }
+
   // Durata lorda (pausa inclusa) = tempo di presenza.
   function shiftSpanMinutes(shift) {
     var a = parseTime(shift.start);
@@ -410,6 +426,7 @@
     get GIORNI() { return giorni(); },
     get GIORNI_BREVI() { return giorniBrevi(); },
     TIPI: TIPI,
+    turnoIncompleto: turnoIncompleto,
     pad: pad, toISO: toISO, fromISO: fromISO, today: today, addDays: addDays, dow: dow,
     weekStart: weekStart, weekEnd: weekEnd, monthStart: monthStart, monthEnd: monthEnd,
     addMonths: addMonths, daysBetween: daysBetween, isoWeekNumber: isoWeekNumber,

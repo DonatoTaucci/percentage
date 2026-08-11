@@ -165,6 +165,13 @@
     var start = (f.querySelector('[name=start]') || {}).value;
     var end = (f.querySelector('[name=end]') || {}).value;
     var br = parseInt((f.querySelector('[name=breakMin]') || {}).value, 10) || 0;
+    if (Calc.turnoIncompleto({ start: start, end: end, tipo: 'lavoro' })) {
+      prev.textContent = start
+        ? T('Manca l\'orario di uscita: il turno resta da completare e non conta ore.')
+        : T('Manca l\'orario di entrata: il turno resta da completare e non conta ore.');
+      I18n.traduciDOM(prev);
+      return;
+    }
     var min = Calc.shiftMinutes({ start: start, end: end, breakMin: br, tipo: 'lavoro' }, Store.settings());
     if (!min) { prev.textContent = ''; return; }
     var target = Store.settings().oreGiornaliere * 60;
@@ -187,8 +194,10 @@
       note: (f.querySelector('[name=note]') || {}).value || ''
     };
     if (!data.date) { toast('Inserisci una data.'); return; }
-    if (Calc.TIPI[data.tipo].conteggia === 'ore' && (!data.start || !data.end)) {
-      toast('Inserisci orario di inizio e fine.');
+    // Basta uno dei due orari: chi ha dimenticato di timbrare registra quello
+    // che ha e completa più avanti. Finché manca l'altro il turno vale zero.
+    if (Calc.TIPI[data.tipo].conteggia === 'ore' && !data.start && !data.end) {
+      toast('Inserisci almeno l\'orario di entrata o quello di uscita.');
       return;
     }
     if (data.start && data.end && data.start === data.end) {
@@ -328,10 +337,10 @@
         Geo.posizioneCorrente().then(function (pos) {
           var c = Geo.cfg();
           var d = Geo.distanza(pos.lat, pos.lng, c.lat, c.lng);
-          toast(T(d <= c.raggio
-            ? 'Sei a {d} dal punto salvato (raggio {r} m): dentro.'
-            : 'Sei a {d} dal punto salvato (raggio {r} m): fuori.',
-            { d: Geo.fmtDist(d), r: c.raggio }), 5000);
+          var dove = { d: Geo.fmtDist(d), r: c.raggio };
+          toast(d <= c.raggio
+            ? T('Sei a {d} dal punto salvato (raggio {r} m): dentro.', dove)
+            : T('Sei a {d} dal punto salvato (raggio {r} m): fuori.', dove), 5000);
         }).catch(function (err) {
           toast(err.message, 4500);
         });

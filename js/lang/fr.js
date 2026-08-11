@@ -390,3 +390,22 @@ Object.assign(window.I18N.fr, {
   "Nome utente": "Nom d'utilisateur",
   "L'elenco si popola al primo accesso di ciascuno: chi si è registrato prima di questa modifica comparirà quando rientrerà. L'email è quella del token, non quella dichiarata dal client.": "La liste se remplit à la première connexion de chacun : qui s'est inscrit avant cette modification apparaîtra à son retour. L'adresse e-mail vient du jeton, pas de ce que déclare le client."
 });
+
+/* Turni con un solo orario. */
+Object.assign(window.I18N.fr, {
+  "{0}h {1}m / {2}h a oggi": "{0}h {1}min / {2}h à ce jour",
+  "{n} turni di questo mese hanno un solo orario e non contano ore: aprili e completali.": "{n} services de ce mois n'ont qu'un seul horaire et ne comptent aucune heure : ouvre-les et complète-les.",
+  "−{0}h {1}m": "−{0}h {1}min",
+  "Da completare": "À compléter",
+  "Inserisci almeno l'orario di entrata o quello di uscita.": "Saisis au moins l'heure d'arrivée ou celle de sortie.",
+  "Puoi lasciarne vuoto uno e completarlo più avanti: finché manca, il turno non conta ore.": "Tu peux en laisser un vide et le compléter plus tard : tant qu'il manque, le service ne compte aucune heure.",
+  "Un turno di questo mese ha un solo orario e non conta ore: aprilo e completalo.": "Un service de ce mois n'a qu'un seul horaire et ne compte aucune heure : ouvre-le et complète-le.",
+  "Manca l'orario di uscita: il turno resta da completare e non conta ore.": "L'heure de sortie manque : le service reste à compléter et ne compte aucune heure.",
+  "Manca l'orario di entrata: il turno resta da completare e non conta ore.": "L'heure d'arrivée manque : le service reste à compléter et ne compte aucune heure."
+});
+
+/* Verifica della distanza dal luogo di lavoro. */
+Object.assign(window.I18N.fr, {
+  "Sei a {d} dal punto salvato (raggio {r} m): dentro.": "Tu es à {d} du point enregistré (rayon {r} m) : à l'intérieur.",
+  "Sei a {d} dal punto salvato (raggio {r} m): fuori.": "Tu es à {d} du point enregistré (rayon {r} m) : à l'extérieur."
+});

@@ -166,6 +166,19 @@ export function shiftMinutes(shift: Pick<Shift, 'start' | 'end' | 'breakMin' | '
   return Math.max(0, dur - pausa);
 }
 
+/* Turno a ore con un solo orario: manca l'entrata o l'uscita.
+
+   Vale zero minuti, perché l'orario mancante non lo inventiamo: dedurlo
+   dall'orario standard falserebbe proprio le percentuali per cui esiste
+   questa applicazione. Va però distinto da una giornata non lavorata. */
+export function turnoIncompleto(shift: Pick<Shift, 'start' | 'end' | 'tipo'>): boolean {
+  const def = TIPI[shift.tipo] ?? TIPI.lavoro;
+  if (def.conteggia !== 'ore') return false;
+  const a = parseTime(shift.start);
+  const b = parseTime(shift.end);
+  return (a === null) !== (b === null);
+}
+
 export function shiftSpanMinutes(shift: Pick<Shift, 'start' | 'end'>): number {
   const a = parseTime(shift.start);
   const b = parseTime(shift.end);

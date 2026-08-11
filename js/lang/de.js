@@ -390,3 +390,22 @@ Object.assign(window.I18N.de, {
   "Nome utente": "Benutzername",
   "L'elenco si popola al primo accesso di ciascuno: chi si è registrato prima di questa modifica comparirà quando rientrerà. L'email è quella del token, non quella dichiarata dal client.": "Die Liste füllt sich mit der ersten Anmeldung jeder Person: Wer sich vor dieser Änderung registriert hat, erscheint beim nächsten Besuch. Die E-Mail stammt aus dem Token, nicht aus dem, was der Client behauptet."
 });
+
+/* Turni con un solo orario. */
+Object.assign(window.I18N.de, {
+  "{0}h {1}m / {2}h a oggi": "{0} Std. {1} Min. / {2} Std. bis heute",
+  "{n} turni di questo mese hanno un solo orario e non contano ore: aprili e completali.": "{n} Schichten in diesem Monat haben nur eine Uhrzeit und zählen keine Stunden: öffne sie und trage den Rest nach.",
+  "−{0}h {1}m": "−{0} Std. {1} Min.",
+  "Da completare": "Zu vervollständigen",
+  "Inserisci almeno l'orario di entrata o quello di uscita.": "Gib mindestens die Kommen- oder die Gehen-Zeit an.",
+  "Puoi lasciarne vuoto uno e completarlo più avanti: finché manca, il turno non conta ore.": "Du kannst eine der beiden leer lassen und später nachtragen: solange sie fehlt, zählt die Schicht keine Stunden.",
+  "Un turno di questo mese ha un solo orario e non conta ore: aprilo e completalo.": "Eine Schicht in diesem Monat hat nur eine Uhrzeit und zählt keine Stunden: öffne sie und trage den Rest nach.",
+  "Manca l'orario di uscita: il turno resta da completare e non conta ore.": "Die Gehen-Zeit fehlt: Die Schicht bleibt unvollständig und zählt keine Stunden.",
+  "Manca l'orario di entrata: il turno resta da completare e non conta ore.": "Die Kommen-Zeit fehlt: Die Schicht bleibt unvollständig und zählt keine Stunden."
+});
+
+/* Verifica della distanza dal luogo di lavoro. */
+Object.assign(window.I18N.de, {
+  "Sei a {d} dal punto salvato (raggio {r} m): dentro.": "Du bist {d} vom gespeicherten Punkt entfernt (Radius {r} m): innerhalb.",
+  "Sei a {d} dal punto salvato (raggio {r} m): fuori.": "Du bist {d} vom gespeicherten Punkt entfernt (Radius {r} m): außerhalb."
+});

@@ -430,9 +430,11 @@
     var d = Calc.fromISO(s.date);
     var isLavoro = (Calc.TIPI[s.tipo] || Calc.TIPI.lavoro).conteggia === 'ore';
 
+    var incompleto = Calc.turnoIncompleto(s);
     var sub;
     if (isLavoro) {
-      sub = esc(s.start) + ' – ' + esc(s.end) +
+      // Il lato mancante si vede: "09:00 – ?" dice più di una riga monca.
+      sub = esc(s.start || '?') + ' – ' + esc(s.end || '?') +
         (s.breakMin ? ' · pausa ' + s.breakMin + 'm' : ' · nessuna pausa') +
         (Calc.isNightShift(s) ? ' · serale/notturno' : '');
     } else {
@@ -443,7 +445,9 @@
     return '<div class="shift">' +
       '<div class="shift-date"><div class="d">' + d.getDate() + '</div><div class="m">' + Calc.MESI_BREVI[d.getMonth()] + '</div></div>' +
       '<div class="shift-main">' +
-        '<div class="t">' + (isLavoro ? Calc.fmtDuration(min) : tipoBadge(s.tipo)) + '</div>' +
+        '<div class="t">' + (incompleto
+            ? '<span class="badge warn">' + esc(T('Da completare')) + '</span>'
+            : (isLavoro ? Calc.fmtDuration(min) : tipoBadge(s.tipo))) + '</div>' +
         '<div class="s">' + sub + '</div>' +
       '</div>' +
       '<div class="shift-actions">' +
@@ -504,6 +508,20 @@
         esc(T('Nessun turno registrato in {mese}.', { mese: Calc.fmtMonth(mese) })) + '<br>' +
         '<button class="btn primary sm" style="margin-top:14px" data-action="new-shift" data-date="' + from + '">Aggiungi il primo</button></div>';
       return html;
+    }
+
+    /* Un turno lasciato a metà è facile da dimenticare una seconda volta:
+       vale la pena dire quanti sono, invece di lasciarli trovare per caso. */
+    var daCompletare = 0;
+    giorniConTurni.forEach(function (d) {
+      d.entries.forEach(function (t) { if (Calc.turnoIncompleto(t)) daCompletare++; });
+    });
+    if (daCompletare) {
+      html += '<div class="note" style="margin-top:16px;border-color:var(--warn)">' +
+        esc(daCompletare === 1
+          ? T('Un turno di questo mese ha un solo orario e non conta ore: aprilo e completalo.')
+          : T('{n} turni di questo mese hanno un solo orario e non contano ore: aprili e completali.', { n: daCompletare })) +
+        '</div>';
     }
 
     var settimane = {};
@@ -1237,12 +1255,19 @@
     html += '<div id="ore-fields" class="' + (Calc.TIPI[tipo].conteggia === 'ore' ? '' : 'hidden') + '">';
     html += '<div class="grid grid-3">';
     var std = s.orario || {};
-    html += '<label class="field">Inizio<input type="time" name="start" value="' + esc(shift.start || std.inizio || '09:00') + '"></label>';
-    html += '<label class="field">Fine<input type="time" name="end" value="' + esc(shift.end || std.fine || '18:00') + '"></label>';
+    // Su un turno esistente non si reintroduce l'orario standard al posto di
+    // quello lasciato vuoto: sarebbe come completarlo di nascosto.
+    var proponi = !shift.id;
+    html += '<label class="field">Inizio<input type="time" name="start" value="' +
+      esc(shift.start || (proponi ? (std.inizio || '09:00') : '')) + '"></label>';
+    html += '<label class="field">Fine<input type="time" name="end" value="' +
+      esc(shift.end || (proponi ? (std.fine || '18:00') : '')) + '"></label>';
     html += '<label class="field">Pausa (min)<input type="number" name="breakMin" min="0" max="480" step="5" value="' +
       (shift.breakMin !== undefined ? shift.breakMin : s.pausaPredefinita) + '"></label>';
     html += '</div>';
     html += '<p class="tiny muted" style="margin:8px 0 0" id="preview-ore"></p>';
+    html += '<p class="tiny muted" style="margin:6px 0 0">' +
+      esc(T('Puoi lasciarne vuoto uno e completarlo più avanti: finché manca, il turno non conta ore.')) + '</p>';
     html += '</div>';
 
     html += '<label class="field">Note (facoltative)<input type="text" name="note" maxlength="200" value="' + esc(shift.note || '') + '"></label>';

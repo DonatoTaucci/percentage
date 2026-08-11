@@ -394,3 +394,22 @@ Object.assign(window.I18N.es, {
   "Nome utente": "Nombre de usuario",
   "L'elenco si popola al primo accesso di ciascuno: chi si è registrato prima di questa modifica comparirà quando rientrerà. L'email è quella del token, non quella dichiarata dal client.": "La lista se llena con el primer acceso de cada persona: quien se registró antes de este cambio aparecerá cuando vuelva a entrar. El correo procede del token, no de lo que declara el cliente."
 });
+
+/* Turni con un solo orario. */
+Object.assign(window.I18N.es, {
+  "{0}h {1}m / {2}h a oggi": "{0}h {1}m / {2}h hasta hoy",
+  "{n} turni di questo mese hanno un solo orario e non contano ore: aprili e completali.": "{n} turnos de este mes tienen solo una hora y no computan: ábrelos y complétalos.",
+  "−{0}h {1}m": "−{0}h {1}m",
+  "Da completare": "Por completar",
+  "Inserisci almeno l'orario di entrata o quello di uscita.": "Introduce al menos la hora de entrada o la de salida.",
+  "Puoi lasciarne vuoto uno e completarlo più avanti: finché manca, il turno non conta ore.": "Puedes dejar una de las dos vacía y completarla más adelante: mientras falte, el turno no computa horas.",
+  "Un turno di questo mese ha un solo orario e non conta ore: aprilo e completalo.": "Un turno de este mes tiene solo una hora y no computa: ábrelo y complétalo.",
+  "Manca l'orario di uscita: il turno resta da completare e non conta ore.": "Falta la hora de salida: el turno queda por completar y no computa horas.",
+  "Manca l'orario di entrata: il turno resta da completare e non conta ore.": "Falta la hora de entrada: el turno queda por completar y no computa horas."
+});
+
+/* Verifica della distanza dal luogo di lavoro. */
+Object.assign(window.I18N.es, {
+  "Sei a {d} dal punto salvato (raggio {r} m): dentro.": "Estás a {d} del punto guardado (radio {r} m): dentro.",
+  "Sei a {d} dal punto salvato (raggio {r} m): fuori.": "Estás a {d} del punto guardado (radio {r} m): fuera."
+});

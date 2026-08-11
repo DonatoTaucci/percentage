@@ -393,3 +393,22 @@ Object.assign(window.I18N.en, {
   "Nome utente": "Username",
   "L'elenco si popola al primo accesso di ciascuno: chi si è registrato prima di questa modifica comparirà quando rientrerà. L'email è quella del token, non quella dichiarata dal client.": "The list fills up at each person's first sign-in: anyone who registered before this change will appear once they come back. The email comes from the token, not from what the client claims."
 });
+
+/* Turni con un solo orario. */
+Object.assign(window.I18N.en, {
+  "{0}h {1}m / {2}h a oggi": "{0}h {1}m / {2}h so far",
+  "{n} turni di questo mese hanno un solo orario e non contano ore: aprili e completali.": "{n} shifts this month have only one time and count no hours: open them and fill in the rest.",
+  "−{0}h {1}m": "−{0}h {1}m",
+  "Da completare": "To complete",
+  "Inserisci almeno l'orario di entrata o quello di uscita.": "Enter at least the start or the end time.",
+  "Puoi lasciarne vuoto uno e completarlo più avanti: finché manca, il turno non conta ore.": "You can leave one of them empty and fill it in later: while it is missing, the shift counts no hours.",
+  "Un turno di questo mese ha un solo orario e non conta ore: aprilo e completalo.": "One shift this month has only one time and counts no hours: open it and fill in the rest.",
+  "Manca l'orario di uscita: il turno resta da completare e non conta ore.": "The end time is missing: the shift stays incomplete and counts no hours.",
+  "Manca l'orario di entrata: il turno resta da completare e non conta ore.": "The start time is missing: the shift stays incomplete and counts no hours."
+});
+
+/* Verifica della distanza dal luogo di lavoro. */
+Object.assign(window.I18N.en, {
+  "Sei a {d} dal punto salvato (raggio {r} m): dentro.": "You are {d} from the saved point (radius {r} m): inside.",
+  "Sei a {d} dal punto salvato (raggio {r} m): fuori.": "You are {d} from the saved point (radius {r} m): outside."
+});

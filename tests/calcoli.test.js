@@ -24,6 +24,15 @@ const { chromium } = require('playwright');
         Object.assign({}, S, { pausaRetribuita:true })), 540);
     ok('ferie non produce ore', Calc.shiftMinutes({ start:'', end:'', breakMin:0, tipo:'ferie' }, S), 0);
 
+    // Turno lasciato a metà: registrabile, ma l'orario mancante non si inventa.
+    ok('solo entrata: zero ore', Calc.shiftMinutes({ start:'09:00', end:'', breakMin:60, tipo:'lavoro' }, S), 0);
+    ok('solo uscita: zero ore', Calc.shiftMinutes({ start:'', end:'18:00', breakMin:60, tipo:'lavoro' }, S), 0);
+    ok('solo entrata è incompleto', Calc.turnoIncompleto({ start:'09:00', end:'', tipo:'lavoro' }), true);
+    ok('solo uscita è incompleto', Calc.turnoIncompleto({ start:'', end:'18:00', tipo:'lavoro' }), true);
+    ok('turno intero non è incompleto', Calc.turnoIncompleto({ start:'09:00', end:'18:00', tipo:'lavoro' }), false);
+    ok('turno vuoto non è incompleto', Calc.turnoIncompleto({ start:'', end:'', tipo:'lavoro' }), false);
+    ok('le ferie non sono mai incomplete', Calc.turnoIncompleto({ start:'', end:'', tipo:'ferie' }), false);
+
     // lunedì 2026-08-03 (giorno lavorativo)
     const lun = '2026-08-03', sab = '2026-08-08';
     let d = Calc.daySummary(lun, [{ id:'a', date:lun, start:'09:00', end:'19:00', breakMin:60, tipo:'lavoro' }], S);

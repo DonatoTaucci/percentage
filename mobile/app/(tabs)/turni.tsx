@@ -49,7 +49,19 @@ export default function Turni() {
     if (!bozza) return;
     const tipo = (bozza.tipo || 'lavoro') as TipoGiornata;
     if (TIPI[tipo].conteggia === 'ore') {
-      if (C.parseTime(bozza.start || '') === null || C.parseTime(bozza.end || '') === null) {
+      const a = C.parseTime(bozza.start || '');
+      const b = C.parseTime(bozza.end || '');
+      // Basta uno dei due: chi ha dimenticato di timbrare registra quello che
+      // ha e completa più avanti. Finché manca l'altro, il turno vale zero.
+      if (a === null && b === null) {
+        Alert.alert('Orario mancante', 'Inserisci almeno l\'orario di entrata o quello di uscita, nel formato 24 ore (per esempio 09:00).');
+        return;
+      }
+      if ((bozza.start || '').trim() !== '' && a === null) {
+        Alert.alert('Orario non valido', 'Usa il formato 24 ore, per esempio 09:00.');
+        return;
+      }
+      if ((bozza.end || '').trim() !== '' && b === null) {
         Alert.alert('Orario non valido', 'Usa il formato 24 ore, per esempio 09:00.');
         return;
       }
@@ -124,9 +136,11 @@ export default function Turni() {
                     <View style={{ flex: 1 }}>
                       {TIPI[s.tipo].conteggia === 'ore' ? (
                         <>
-                          <Txt weight="700">{C.fmtDuration(C.shiftMinutes(s, st))}</Txt>
+                          {C.turnoIncompleto(s)
+                            ? <Badge tone="warn">Da completare</Badge>
+                            : <Txt weight="700">{C.fmtDuration(C.shiftMinutes(s, st))}</Txt>}
                           <Txt dim size={12}>
-                            {`${s.start} – ${s.end}${s.breakMin ? ` · pausa ${s.breakMin}m` : ' · nessuna pausa'}${C.isNightShift(s) ? ' · serale' : ''}`}
+                            {`${s.start || '?'} – ${s.end || '?'}${s.breakMin ? ` · pausa ${s.breakMin}m` : ' · nessuna pausa'}${C.isNightShift(s) ? ' · serale' : ''}${C.turnoIncompleto(s) ? ' · da completare' : ''}`}
                           </Txt>
                         </>
                       ) : (
@@ -170,6 +184,13 @@ export default function Turni() {
                   <Campo label="Pausa (min)" value={String(bozza?.breakMin ?? 0)} keyboardType="numeric"
                     onChangeText={v => setBozza(b => b && ({ ...b, breakMin: parseInt(v, 10) || 0 }))} />
                 </Riga>
+                {!!bozza && C.turnoIncompleto({ start: bozza.start ?? '', end: bozza.end ?? '', tipo: 'lavoro' }) && (
+                  <Txt dim size={12}>
+                    {bozza.start
+                      ? 'Manca l\'orario di uscita: il turno resta da completare e non conta ore.'
+                      : 'Manca l\'orario di entrata: il turno resta da completare e non conta ore.'}
+                  </Txt>
+                )}
                 {!!bozza && C.parseTime(bozza.start || '') !== null && C.parseTime(bozza.end || '') !== null && (
                   <Txt dim size={12}>
                     {`Ore lavorate: ${C.fmtDuration(C.shiftMinutes({ start: bozza.start!, end: bozza.end!, breakMin: bozza.breakMin ?? 0, tipo: 'lavoro' }, st))}`}
