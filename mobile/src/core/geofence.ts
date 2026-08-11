@@ -55,7 +55,7 @@ export function decidi(evento: GeoEvento, data: AppData, nowMs: number = Date.no
         return {
           azione: 'promemoria-entrata',
           data,
-          notifica: { title: 'Sei arrivato al lavoro', body: 'Apri Percentage per timbrare l\'entrata.' },
+          notifica: { title: 'Sei arrivato al lavoro', body: 'Apri Work Balance per timbrare l\'entrata.' },
         };
       }
       return {

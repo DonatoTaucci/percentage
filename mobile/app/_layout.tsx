@@ -22,7 +22,10 @@ function Rotte() {
   useEffect(() => {
     if (!isLoaded) return;
     const inAuth = segments[0] === 'accedi';
-    if (!isSignedIn && !inAuth) router.replace('/accedi');
+    // L'informativa resta aperta anche senza sessione: chi sta decidendo se
+    // registrarsi deve poterla leggere prima, non dopo aver dato i suoi dati.
+    const pubblica = inAuth || segments[0] === 'privacy';
+    if (!isSignedIn && !pubblica) router.replace('/accedi');
     else if (isSignedIn && inAuth) router.replace('/');
   }, [isSignedIn, isLoaded, segments, router]);
 
@@ -30,6 +33,7 @@ function Rotte() {
     <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="accedi" />
+      <Stack.Screen name="privacy" />
     </Stack>
   );
 }

@@ -4,6 +4,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { useApp } from '../../src/data/store';
 import * as Coach from '../../src/core/coach';
@@ -16,7 +17,8 @@ export default function Benessere() {
   const p = usePalette();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { data, aggiungiCheckin } = useApp();
+  const router = useRouter();
+  const { data, aggiungiCheckin, aggiornaImpostazioni } = useApp();
   const st = data.settings;
   const larghezza = Math.max(220, width - S.lg * 2 - 34);
 
@@ -35,6 +37,44 @@ export default function Benessere() {
     aggiungiCheckin({ answers: risposte, dims: punteggi.dims, score: v.score ?? 0, level: v.level.label });
     setQuiz(false);
     setRisposte({});
+  }
+
+  /* Le risposte riguardano la salute: prima del consenso esplicito il
+     questionario non si apre, così non esistono proprio dati da trattare. */
+  if (quiz && !st.consensi.benessere) {
+    return (
+      <ScrollView
+        style={{ flex: 1, backgroundColor: p.bg }}
+        contentContainerStyle={{ padding: S.lg, paddingTop: insets.top + S.md, paddingBottom: 40 }}
+      >
+        <Card>
+          <Titolo>Prima di cominciare serve il tuo consenso</Titolo>
+          <Txt dim size={13.5} style={{ marginTop: S.md, lineHeight: 21 }}>
+            Le domande riguardano sonno, energia, recupero e ansia legata al lavoro. Sono informazioni
+            sulla tua salute, e per trattarle il Regolamento europeo chiede un consenso dato in modo esplicito.
+          </Txt>
+          {[
+            'Le risposte e il punteggio restano su questo dispositivo e sul tuo account. Nessun altro utente li vede.',
+            'Servono solo a calcolare il tuo indice di rischio e i consigli, che l\'app genera sul dispositivo con regole fisse, senza mandare niente a nessuno.',
+            'Puoi revocare il consenso quando vuoi dalle impostazioni, e cancellare i check-in già salvati.',
+          ].map((t, i) => (
+            <Riga key={i} gap={6} style={{ marginTop: S.sm, alignItems: 'flex-start' }}>
+              <Txt dim size={13.5} style={{ lineHeight: 21 }}>•</Txt>
+              <Txt dim size={13.5} style={{ flex: 1, lineHeight: 21 }}>{t}</Txt>
+            </Riga>
+          ))}
+          <Riga gap={S.sm} style={{ marginTop: S.lg, flexWrap: 'wrap' }}>
+            <Btn
+              title="Acconsento"
+              variante="primario"
+              onPress={() => aggiornaImpostazioni({ consensi: { ...st.consensi, benessere: new Date().toISOString() } })}
+            />
+            <Btn title="Non ora" variante="fantasma" onPress={() => setQuiz(false)} />
+            <Btn title="Informativa" variante="fantasma" onPress={() => router.push('/privacy')} />
+          </Riga>
+        </Card>
+      </ScrollView>
+    );
   }
 
   if (quiz) {
@@ -108,6 +148,13 @@ export default function Benessere() {
         con un questionario di 16 domande. È uno strumento di auto-osservazione: non sostituisce il
         parere di un medico o di uno psicologo.
       </Nota>
+
+      {/* Distinzione che vale la pena fare esplicitamente: qui sotto non c'è
+          nessun modello, ci sono formule. */}
+      <Txt dim size={11.5} style={{ marginTop: S.sm, lineHeight: 18 }}>
+        Punteggio e consigli sono calcolati sul dispositivo da regole fisse, non da un'intelligenza
+        artificiale: a parità di dati il risultato è sempre lo stesso.
+      </Txt>
 
       <Card style={{ marginTop: S.md }}>
         <RigaTra style={{ marginBottom: S.md }}>

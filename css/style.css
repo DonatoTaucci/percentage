@@ -1,4 +1,4 @@
-/* Percentage — stile base
+/* Work Balance — stile base
    Tema scuro di default, tema chiaro via [data-theme="light"]. */
 
 :root {
@@ -536,4 +536,49 @@ svg text { fill: var(--txt-dim); font-size: 11px; font-family: inherit; }
   margin-top: 56px; padding-top: 20px;
   border-top: 1px solid var(--line);
   text-align: center; font-size: 12.5px; color: var(--txt-dim);
+}
+
+/* ---------- documenti (informativa, nota IA) ----------
+   Testo lungo da leggere davvero: misura stretta, righe alte, gerarchia
+   evidente. Il resto dell'interfaccia è fatto di numeri, questo no. */
+.doc { max-width: 74ch; margin: 0 auto; }
+.doc h2 { margin: 0 0 4px; font-size: clamp(21px, 3.4vw, 27px); line-height: 1.2; letter-spacing: -.01em; }
+.doc-data { margin: 0 0 22px; font-size: 12.5px; color: var(--txt-dim); }
+.doc .note { margin-bottom: 26px; }
+.doc .note p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.65; }
+.doc .note p:last-child { margin-bottom: 0; }
+.doc-sez { margin-top: 30px; }
+.doc-sez h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  letter-spacing: .01em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.doc-sez p { margin: 0 0 12px; font-size: 14px; line-height: 1.7; color: var(--txt-dim); }
+.doc-lista { margin: 0 0 12px; padding-left: 20px; }
+.doc-lista li { margin-bottom: 9px; font-size: 14px; line-height: 1.7; color: var(--txt-dim); }
+.doc-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+
+/* Riquadro di consenso: deve sembrare una scelta, non un avviso da chiudere. */
+.consenso {
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.consenso h4 { margin: 0 0 8px; font-size: 15px; }
+.consenso p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.65; color: var(--txt-dim); }
+.consenso ul { margin: 0 0 12px; padding-left: 20px; }
+.consenso li { font-size: 13.5px; line-height: 1.6; color: var(--txt-dim); margin-bottom: 6px; }
+
+/* Etichetta sulle risposte generate da un modello: obbligo di trasparenza,
+   quindi va vista, non nascosta in fondo alla pagina. */
+.msg-ia-tag {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--txt-dim);
 }

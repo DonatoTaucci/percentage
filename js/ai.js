@@ -7,9 +7,16 @@
   var ENDPOINT = 'https://api.anthropic.com/v1/messages';
   var API_VERSION = '2023-06-01';
 
+  var LINGUE = { it: 'italiano', en: 'inglese', es: 'spagnolo', fr: 'francese', de: 'tedesco' };
+
+  function lingua() {
+    var code = global.I18n ? global.I18n.lingua() : 'it';
+    return LINGUE[code] || 'italiano';
+  }
+
   var SYSTEM = [
     'Sei un assistente che aiuta un lavoratore a riflettere su carico di lavoro, stress, ansia da lavoro e prevenzione del burnout.',
-    'Rispondi sempre in italiano, con un tono diretto e concreto, senza retorica motivazionale.',
+    'Rispondi sempre in {LINGUA}, con un tono diretto e concreto, senza retorica motivazionale.',
     '',
     'Come lavori:',
     '- Parti dai dati reali dei turni che ti vengono forniti e citali quando sono rilevanti (ore, straordinari, giorni consecutivi, pause).',
@@ -83,7 +90,9 @@
     });
 
     // Il contesto dati va in coda al system prompt: cambia raramente e resta separato dalla conversazione.
-    var system = SYSTEM + '\n\n---\n' + contextBlock();
+    // La lingua è quella dell'interfaccia: chi legge il sito in tedesco non
+    // deve ricevere l'unica risposta della pagina in italiano.
+    var system = SYSTEM.replace('{LINGUA}', lingua()) + '\n\n---\n' + contextBlock();
 
     return fetch(ENDPOINT, {
       method: 'POST',

@@ -6,6 +6,7 @@
     "chiavi": "node scripts/raccogli-chiavi.mjs",
     "chiavi:verifica": "node scripts/raccogli-chiavi.mjs --verifica",
     "lingue": "node scripts/controlla-lingue.mjs",
-    "clerk": "node scripts/imposta-chiave-clerk.mjs"
+    "clerk": "node scripts/imposta-chiave-clerk.mjs",
+    "legale": "node scripts/controlla-legale.mjs"
   }
 }

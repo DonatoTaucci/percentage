@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Percentage",
+    "name": "Work Balance",
     "slug": "percentage",
     "version": "1.0.0",
     "scheme": "percentage",
@@ -43,9 +43,9 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Percentage usa la posizione per riconoscere quando arrivi e quando lasci il posto di lavoro.",
-          "locationAlwaysAndWhenInUsePermission": "Con il permesso \"Sempre\" Percentage può timbrare entrata e uscita da sola anche quando l'app è chiusa. La posizione resta sul tuo dispositivo e non viene condivisa.",
-          "locationAlwaysPermission": "Con il permesso \"Sempre\" Percentage può timbrare entrata e uscita da sola anche quando l'app è chiusa.",
+          "locationWhenInUsePermission": "Work Balance usa la posizione per riconoscere quando arrivi e quando lasci il posto di lavoro.",
+          "locationAlwaysAndWhenInUsePermission": "Con il permesso \"Sempre\" Work Balance può timbrare entrata e uscita da sola anche quando l'app è chiusa. La posizione resta sul tuo dispositivo e non viene condivisa.",
+          "locationAlwaysPermission": "Con il permesso \"Sempre\" Work Balance può timbrare entrata e uscita da sola anche quando l'app è chiusa.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": false

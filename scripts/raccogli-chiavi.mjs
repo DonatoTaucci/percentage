@@ -189,12 +189,40 @@ for (const geo of [
   await vaiA('impostazioni');
 }
 
-/* 7. L'assistente: senza chiave, con chiave, con una conversazione in corso. */
+/* 7. L'assistente: senza chiave, con chiave ma senza consenso (dove compare
+      il riquadro che lo chiede), e infine con il consenso dato. */
 await page.evaluate(() => {
-  window.Store.updateSettings({ aiKey: 'sk-ant-finta' });
+  window.Store.updateSettings({ aiKey: 'sk-ant-finta', consensi: { benessere: null, ia: null } });
+  window.App.ctx.chat = [];
+});
+for (const v of ['benessere', 'impostazioni']) await vaiA(v);
+
+/* 7b. Il consenso al questionario, che si vede solo aprendolo senza averlo dato. */
+await page.evaluate(() => { window.App.ctx.quizOpen = true; window.App.go('benessere'); });
+await page.waitForTimeout(160);
+await raccogliVisibile();
+await page.evaluate(() => { window.App.ctx.quizOpen = false; });
+
+await page.evaluate(() => {
+  window.Store.impostaConsenso('benessere', true);
+  window.Store.impostaConsenso('ia', true);
   window.App.ctx.chat = [{ role: 'user', content: 'ciao' }, { role: 'assistant', content: 'ciao a te' }];
 });
 for (const v of ['benessere', 'impostazioni']) await vaiA(v);
+
+/* 7c. I due documenti, dentro e fuori dall'applicazione. */
+for (const doc of ['privacy', 'ia']) {
+  await page.evaluate((d) => { window.App.ctx.doc = d; window.App.go('privacy'); }, doc);
+  await page.waitForTimeout(160);
+  await raccogliVisibile();
+  await page.evaluate((d) => {
+    const l = document.getElementById('landing');
+    l.classList.remove('hidden');
+    l.innerHTML = window.UI.documenti({ doc: d }, true);
+    window.__raccogli(l);
+    l.classList.add('hidden');
+  }, doc);
+}
 await page.evaluate(() => { window.App.ctx.aiBusy = true; window.App.render(); });
 await page.waitForTimeout(160);
 await raccogliVisibile();
@@ -268,7 +296,7 @@ const ESCLUDI = [
   /chiave Clerk:/,                       // riga diagnostica, composta a runtime
   /^https?:/,
   /^sk-ant-/,                            // segnaposto della chiave API
-  /^Percentage$/,                        // il nome del prodotto non si traduce
+  /^Work Balance$/,                        // il nome del prodotto non si traduce
 ];
 
 const chiavi = [...new Set([...(await page.evaluate(() => [...window.__chiavi])), ...daSorgente])];

@@ -112,7 +112,7 @@
 
     if (!p) {
       if (!c.autoEntrata) {
-        notify('Sei arrivato al lavoro', 'Apri Percentage per timbrare l\'entrata.', 'geo-in');
+        notify('Sei arrivato al lavoro', 'Apri Work Balance per timbrare l\'entrata.', 'geo-in');
         return 'promemoria-entrata';
       }
       Store.startPunch();
@@ -339,7 +339,7 @@
 
     html += '<div class="note" style="margin-top:14px"><strong>Come funziona davvero.</strong> ' +
       'Un sito web riceve la posizione solo mentre è aperto: su Android il rilevamento prosegue anche con l\'app in secondo piano finché il sistema non sospende la scheda, ' +
-      'su iPhone si interrompe quando esci dall\'app. In pratica: tieni Percentage aperta durante gli spostamenti di inizio e fine turno, ' +
+      'su iPhone si interrompe quando esci dall\'app. In pratica: tieni Work Balance aperta durante gli spostamenti di inizio e fine turno, ' +
       'oppure aprila all\'arrivo e alla partenza — bastano pochi secondi perché la timbratura si allinei. ' +
       'Il GPS consuma batteria: disattiva il rilevamento nei giorni liberi.</div>';
 

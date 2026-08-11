@@ -114,6 +114,24 @@ export async function registraProfilo(
   }
 }
 
+/* Cancella tutte le righe dell'utente sul server.
+
+   L'ordine conta rispetto alla chiusura dell'account: le policy per riga
+   autorizzano in base al token, e chiuso l'account il token non vale più.
+   Prima i dati, poi la porta — chi chiama deve rispettare quest'ordine. */
+export async function eliminaTuttoSulServer(
+  getToken: TokenGetter,
+  userId: string
+): Promise<{ fatto: boolean; errore: string | null }> {
+  if (!isConfigured() || !userId) return { fatto: true, errore: null };
+  const sb = getClient(getToken);
+  for (const tabella of ['shifts', 'checkins', 'settings', 'punches', 'profili'] as const) {
+    const { error } = await sb.from(tabella).delete().eq('user_id', userId);
+    if (error) return { fatto: false, errore: `${tabella}: ${error.message}` };
+  }
+  return { fatto: true, errore: null };
+}
+
 export async function syncNow(
   data: AppData,
   sync: SyncState,

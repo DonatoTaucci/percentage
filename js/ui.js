@@ -48,7 +48,7 @@
     /* intestazione */
     html += '<div class="landing-top">';
     html += '<div class="brand"><span class="brand-mark">%</span><div>' +
-      '<h1>Percentage</h1><p>' + esc(T('Turni, ore e benessere')) + '</p></div></div>';
+      '<h1>Work Balance</h1><p>' + esc(T('Turni, ore e benessere')) + '</p></div></div>';
     html += '<div class="row" style="gap:8px">' + selettoreLingua('sel-lingua-landing') +
       '<button class="icon-btn" type="button" data-action="theme-toggle" title="' + esc(T('Cambia tema')) + '" aria-label="' + esc(T('Cambia tema')) + '">◐</button>' +
       '</div>';
@@ -57,7 +57,7 @@
     /* hero */
     html += '<div class="hero">';
     html += '<h2>' + esc(T('Quanto stai lavorando davvero?')) + '</h2>';
-    html += '<p class="lead">' + esc(T('Timbri entrata e uscita, e Percentage calcola quanto hai lavorato rispetto al tuo orario: ogni giorno, ogni settimana, ogni mese. Straordinari compresi. E ti aiuta ad accorgerti per tempo se stai esagerando.')) + '</p>';
+    html += '<p class="lead">' + esc(T('Timbri entrata e uscita, e Work Balance calcola quanto hai lavorato rispetto al tuo orario: ogni giorno, ogni settimana, ogni mese. Straordinari compresi. E ti aiuta ad accorgerti per tempo se stai esagerando.')) + '</p>';
 
     html += '<div class="hero-cta">';
     if (stato.errore) {
@@ -116,9 +116,45 @@
       T('L\'applicazione nativa aggiunge la timbratura automatica con il GPS e le notifiche: cose che un sito, per come sono fatti i browser, non può fare a app chiusa.'));
     html += '</div></div>';
 
-    html += '<div class="landing-foot">' + esc(T('I turni restano sul tuo dispositivo e sul tuo account. Nient\'altro.')) + '</div>';
+    // L'informativa dev'essere leggibile prima di creare l'account, non dopo:
+    // è il momento in cui si decide se dare i propri dati.
+    html += '<div class="landing-foot">';
+    html += '<p style="margin:0 0 10px">' + esc(T('I turni restano sul tuo dispositivo e sul tuo account. Nient\'altro.')) + '</p>';
+    html += '<div class="row" style="justify-content:center;gap:14px">' +
+      '<button class="btn sm ghost" data-action="doc" data-doc="privacy">' + esc(T('Informativa privacy')) + '</button>' +
+      '<button class="btn sm ghost" data-action="doc" data-doc="ia">' + esc(T('Intelligenza artificiale')) + '</button>' +
+      '</div>';
+    html += '</div>';
 
     html += '</div>';
+    return html;
+  }
+
+  /* I due documenti, con la stessa impaginazione dentro e fuori dall'app. */
+  function documenti(ctx, daLanding) {
+    var quale = (ctx && ctx.doc) === 'ia' ? 'ia' : 'privacy';
+    var html = '';
+
+    if (daLanding) {
+      html += '<div class="landing"><div class="landing-top">';
+      html += '<div class="brand"><span class="brand-mark">%</span><div>' +
+        '<h1>Work Balance</h1><p>' + esc(T('Turni, ore e benessere')) + '</p></div></div>';
+      html += '<div class="row" style="gap:8px">' + selettoreLingua('sel-lingua-landing') + '</div>';
+      html += '</div>';
+    }
+
+    html += '<div class="doc-nav">';
+    html += '<button class="btn sm ghost" data-action="' + (daLanding ? 'chiudi-doc' : 'goto') + '"' +
+      (daLanding ? '' : ' data-view="impostazioni"') + '>' + esc(T('Torna indietro')) + '</button>';
+    html += '<button class="btn sm' + (quale === 'privacy' ? ' primary' : '') + '" data-action="doc" data-doc="privacy">' +
+      esc(T('Informativa privacy')) + '</button>';
+    html += '<button class="btn sm' + (quale === 'ia' ? ' primary' : '') + '" data-action="doc" data-doc="ia">' +
+      esc(T('Intelligenza artificiale')) + '</button>';
+    html += '</div>';
+
+    html += quale === 'ia' ? Legale.notaIA() : Legale.informativa();
+
+    if (daLanding) html += '</div>';
     return html;
   }
 
@@ -672,8 +708,15 @@
       'È uno strumento di auto-osservazione: non sostituisce il parere di un medico o di uno psicologo.' +
       '</div>';
 
+    // Distinzione che vale la pena fare esplicitamente: qui sotto non c'è
+    // nessun modello, ci sono formule. L'IA è solo la conversazione in fondo.
+    html += '<p class="tiny muted" style="margin:8px 0 0">Punteggio e consigli sono calcolati sul tuo dispositivo da regole fisse, non da un\'intelligenza artificiale: a parità di dati il risultato è sempre lo stesso. L\'unica parte che usa un modello è la conversazione facoltativa in fondo alla pagina.</p>';
+
     /* questionario aperto */
     if (ctx.quizOpen) {
+      // Le risposte riguardano la salute: prima del consenso esplicito il
+      // questionario non si apre, così non esistono proprio dati da trattare.
+      if (!Store.consenso('benessere')) return html + consensoBenessere();
       return html + quiz(ctx);
     }
 
@@ -776,6 +819,42 @@
     return html;
   }
 
+  function consensoBenessere() {
+    var html = '<div class="card" style="margin-top:14px"><div class="consenso">';
+    html += '<h4>Prima di cominciare serve il tuo consenso</h4>';
+    html += '<p>Le domande riguardano sonno, energia, recupero e ansia legata al lavoro. Sono informazioni sulla tua salute, e per trattarle il Regolamento europeo chiede un consenso dato in modo esplicito.</p>';
+    html += '<ul>';
+    html += '<li>Le risposte e il punteggio restano su questo dispositivo e, se hai fatto l\'accesso, sul tuo account. Nessun altro utente li vede.</li>';
+    html += '<li>Servono solo a calcolare il tuo indice di rischio e i consigli, che l\'applicazione genera sul dispositivo con regole fisse, senza mandare niente a nessuno.</li>';
+    html += '<li>Puoi revocare il consenso quando vuoi dalle impostazioni, e cancellare i check-in già salvati.</li>';
+    html += '</ul>';
+    html += '<div class="row" style="gap:8px">';
+    html += '<button class="btn primary sm" data-action="consenti" data-consenso="benessere">Acconsento, apri il questionario</button>';
+    html += '<button class="btn sm ghost" data-action="cancel-quiz">Non ora</button>';
+    html += '<button class="btn sm ghost" data-action="doc" data-doc="privacy">Leggi l\'informativa</button>';
+    html += '</div>';
+    html += '</div></div>';
+    return html;
+  }
+
+  function consensoIA() {
+    var html = '<div class="consenso">';
+    html += '<h4>Serve il tuo consenso per usare l\'intelligenza artificiale</h4>';
+    html += '<p>La conversazione è l\'unica parte dell\'applicazione che manda dei dati fuori dal tuo dispositivo. Vale la pena sapere esattamente quali.</p>';
+    html += '<ul>';
+    html += '<li>Viene inviato ad Anthropic un riepilogo aggregato: ore, media settimanale, straordinari, giorni di riposo, turni notturni e il punteggio dell\'ultimo check-in.</li>';
+    html += '<li>Non vengono inviati i singoli turni, le note che scrivi, la tua posizione, la tua email né il tuo nome utente.</li>';
+    html += '<li>Le richieste partono dal tuo browser con la tua chiave API e non passano dal server di questa applicazione.</li>';
+    html += '<li>Stai scrivendo a un modello linguistico, non a una persona: può sbagliare, non è un medico e non decide niente al posto tuo.</li>';
+    html += '</ul>';
+    html += '<div class="row" style="gap:8px">';
+    html += '<button class="btn primary sm" data-action="consenti" data-consenso="ia">Acconsento</button>';
+    html += '<button class="btn sm ghost" data-action="doc" data-doc="ia">Come viene usata l\'IA</button>';
+    html += '</div>';
+    html += '</div>';
+    return html;
+  }
+
   function quiz(ctx) {
     var answers = ctx.quizAnswers || {};
     var risposte = Object.keys(answers).length;
@@ -824,13 +903,32 @@
       return html;
     }
 
+    // Chiave configurata ma consenso mai dato: la chiave da sola non basta,
+    // il consenso è un atto separato e va chiesto prima della prima richiesta.
+    if (!Store.consenso('ia')) {
+      html += consensoIA();
+      html += '</div>';
+      return html;
+    }
+
+    // Dichiarazione di trasparenza: chi legge deve sapere subito con che cosa
+    // sta parlando, non dedurlo dal tono delle risposte.
+    html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">Stai per scrivere a un sistema di intelligenza artificiale: il modello Claude di Anthropic, non una persona. Le risposte possono contenere errori e non sostituiscono un parere medico.</p>';
+
     var chat = ctx.chat || [];
     html += '<div class="chat" id="chat">';
     if (!chat.length) {
       html += '<div class="msg ai">Posso ragionare sui tuoi dati: ore, straordinari, giorni consecutivi e ultimo check-in. Chiedimi qualcosa, oppure usa "Analizza i miei dati" per una lettura completa.</div>';
     }
     chat.forEach(function (m) {
-      html += '<div class="msg ' + (m.role === 'user' ? 'me' : 'ai') + '" data-no-i18n>' + esc(m.content) + '</div>';
+      if (m.role === 'user') {
+        html += '<div class="msg me" data-no-i18n>' + esc(m.content) + '</div>';
+      } else {
+        // Ogni risposta porta la sua etichetta: l'obbligo di far riconoscere
+        // un contenuto generato non si assolve con una nota a fondo pagina.
+        html += '<div class="msg ai"><span class="msg-ia-tag">' + esc(T('Generato dall\'IA')) + '</span>' +
+          '<span data-no-i18n>' + esc(m.content) + '</span></div>';
+      }
     });
     if (ctx.aiBusy) html += '<div class="msg ai muted">Sto elaborando…</div>';
     html += '</div>';
@@ -844,6 +942,10 @@
     if (chat.length) html += '<button class="btn sm ghost" data-action="ai-clear">Svuota conversazione</button>';
     html += '</div>';
     html += '<p class="tiny muted" style="margin:10px 0 0">I dati inviati sono il riepilogo aggregato dei turni e l\'ultimo check-in, non i singoli turni né le note.</p>';
+    html += '<div class="row" style="gap:8px;margin-top:8px">' +
+      '<button class="btn sm ghost" data-action="doc" data-doc="ia">Come viene usata l\'IA</button>' +
+      '<button class="btn sm ghost" data-action="revoca-ia">Revoca il consenso</button>' +
+      '</div>';
     html += '</div>';
     return html;
   }
@@ -1103,10 +1205,63 @@
     return html;
   }
 
+  /* Consensi e diritti, in un posto solo e dentro l'applicazione.
+
+     Un'informativa che rimanda a un modulo via email per ogni cosa è
+     formalmente a posto e praticamente inutile: qui i tre diritti che si
+     possono automatizzare (portabilità, rettifica, cancellazione) sono
+     pulsanti, e i consensi si tolgono con lo stesso gesto con cui si danno. */
+  function cardPrivacy(connesso) {
+    var html = '<div class="card" style="margin-top:14px"><div class="card-title">Privacy, consensi e diritti</div>';
+
+    html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">Che cosa viene raccolto, perché, chi lo vede e per quanto tempo: è tutto scritto nell\'informativa, in italiano leggibile.</p>';
+    html += '<div class="row" style="gap:8px;margin-bottom:18px">' +
+      '<button class="btn sm" data-action="doc" data-doc="privacy">Informativa privacy</button>' +
+      '<button class="btn sm" data-action="doc" data-doc="ia">Come viene usata l\'IA</button>' +
+      '</div>';
+
+    html += consensoRiga('benessere', 'Questionario sul benessere',
+      'Le risposte riguardano la tua salute: senza consenso il questionario non si apre e nessun dato di questo tipo viene creato.');
+    html += consensoRiga('ia', 'Conversazione con l\'intelligenza artificiale',
+      'Autorizza l\'invio del riepilogo aggregato dei tuoi dati ad Anthropic quando usi la conversazione. Senza consenso non parte nessuna richiesta.');
+
+    html += '<div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">';
+    html += '<p class="small muted" style="margin:0 0 10px;max-width:64ch">' +
+      (connesso
+        ? 'Elimina definitivamente i dati sul server, i dati su questo dispositivo e il tuo account. Non è reversibile: se ti serve una copia, esportala prima.'
+        : 'Senza accesso non c\'è nessun account da chiudere: qui puoi cancellare i dati di questo dispositivo dal pulsante "Cancella tutto" qui sopra.') +
+      '</p>';
+    if (connesso) {
+      html += '<button class="btn sm danger" data-action="elimina-account">Elimina account e dati</button>';
+    }
+    html += '</div>';
+
+    html += '<p class="tiny muted" style="margin:14px 0 0">Per ogni altra richiesta sui tuoi dati, o per un reclamo: ' + esc(Legale.contatto) + '</p>';
+    html += '</div>';
+    return html;
+  }
+
+  function consensoRiga(nome, titolo, spiegazione) {
+    var dato = Store.consenso(nome);
+    var quando = Store.dataConsenso(nome);
+    var html = '<div style="margin-top:14px">';
+    html += '<label class="row" style="gap:10px;cursor:pointer;align-items:flex-start">';
+    html += '<input type="checkbox" data-consenso="' + esc(nome) + '"' + (dato ? ' checked' : '') + ' style="margin-top:3px">';
+    html += '<span><span class="small" style="font-weight:600">' + esc(titolo) + '</span>' +
+      '<span class="tiny muted" style="display:block;margin-top:3px;max-width:60ch">' + esc(spiegazione) + '</span></span>';
+    html += '</label>';
+    if (dato && quando) {
+      html += '<p class="tiny muted" style="margin:5px 0 0 28px">Consenso dato il <span data-no-i18n>' + esc(dataLocale(quando)) + '</span></p>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   function impostazioni(ctx) {
     ctx = ctx || {};
     var s = Store.settings();
     var giorni = [1, 2, 3, 4, 5, 6, 0];
+    var connesso = !!(global.Cloud && global.Cloud.connesso && global.Cloud.connesso());
     var html = '';
 
     html += accountCard();
@@ -1202,16 +1357,28 @@
 
     /* dati */
     html += '<div class="card" style="margin-top:14px"><div class="card-title">I tuoi dati</div>';
-    html += '<p class="small muted" style="margin:0 0 12px">' + Store.shifts().length + ' turni e ' + Store.checkins().length + ' check-in salvati su questo dispositivo. ' +
-      'Nessun dato viene inviato a un server, quindi conviene esportare un backup ogni tanto.</p>';
+    // La riga di prima diceva "nessun dato viene inviato a un server": era
+    // vera quando l'app era solo locale, ed è diventata falsa il giorno in
+    // cui è arrivata la sincronizzazione. Ora dice quello che succede.
+    html += '<p class="small muted" style="margin:0 0 4px">' +
+      Store.shifts().length + ' turni e ' + Store.checkins().length + ' check-in salvati su questo dispositivo.</p>';
+    html += '<p class="small muted" style="margin:0 0 12px;max-width:64ch">' +
+      (connesso
+        ? 'Con l\'accesso effettuato, turni, check-in e impostazioni vengono copiati anche sul server per ritrovarli sugli altri tuoi dispositivi. Le note dei turni fanno parte della copia; posizione e chiave dell\'IA no, restano qui.'
+        : 'Senza accesso i dati restano soltanto in questo browser: se lo svuoti, spariscono. Conviene esportare un backup ogni tanto.') +
+      '</p>';
     html += '<div class="row" style="gap:8px">' +
       '<button class="btn sm" data-action="export-json">Esporta JSON</button>' +
       '<button class="btn sm" data-action="export-csv">Esporta CSV</button>' +
       '<button class="btn sm" data-action="import">Importa JSON</button>' +
       '<button class="btn sm danger" data-action="wipe">Cancella tutto</button>' +
       '</div>';
+    html += '<p class="tiny muted" style="margin:10px 0 0">L\'esportazione è anche il modo di esercitare il diritto di portabilità: JSON e CSV sono formati aperti, leggibili da un\'altra applicazione.</p>';
     html += '<input type="file" id="import-file" accept="application/json,.json" class="hidden">';
     html += '</div>';
+
+    /* privacy, consensi e diritti */
+    html += cardPrivacy(connesso);
 
     /* app */
     html += '<div class="card" style="margin-top:14px"><div class="card-title">App</div>';
@@ -1220,7 +1387,7 @@
       '<button type="button" class="chip' + (s.tema === 'dark' ? ' on' : '') + '" data-action="theme" data-theme="dark">Scuro</button>' +
       '<button type="button" class="chip' + (s.tema === 'light' ? ' on' : '') + '" data-action="theme" data-theme="light">Chiaro</button>' +
       '</div></div>';
-    html += '<p class="tiny muted" style="margin:14px 0 0">Percentage è una web app installabile: su Android usa "Aggiungi a schermata Home" dal menu del browser, su iPhone il pulsante Condividi → "Aggiungi a Home". Una volta installata funziona anche offline.</p>';
+    html += '<p class="tiny muted" style="margin:14px 0 0">Work Balance è una web app installabile: su Android usa "Aggiungi a schermata Home" dal menu del browser, su iPhone il pulsante Condividi → "Aggiungi a Home". Una volta installata funziona anche offline.</p>';
     // Riga tecnica: tutto quello che serve a capire un problema di
     // configurazione o di cache, in un posto solo e senza console.
     html += '<p class="tiny muted" style="margin:8px 0 0">Stato tecnico · versione servita: ' +
@@ -1290,6 +1457,7 @@
     esc: esc,
     amministrazione: amministrazione,
     landing: landing,
+    documenti: documenti,
     selettoreLingua: selettoreLingua,
     fmtClock: fmtClock,
     punchDetail: punchDetail,

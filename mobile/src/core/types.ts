@@ -54,6 +54,20 @@ export type Settings = {
   arrotondamento: number;
   geo: GeoConfig;
   tema: 'dark' | 'light' | 'auto';
+  consensi: Consensi;
+};
+
+/* Consensi, con la data in cui sono stati dati (null = mai dato).
+
+   Stanno nelle impostazioni, quindi viaggiano con la sincronizzazione: chi
+   acconsente dal telefono non se lo ritrova da rifare sul sito, e chi
+   revoca revoca ovunque. La data serve a dimostrare quando è stato
+   raccolto, che è metà di ciò che l'art. 7 GDPR chiede di poter provare.
+   `ia` non ha effetto qui — l'app non ha la conversazione — ma esiste per
+   non perderlo nel viaggio di andata e ritorno con il sito. */
+export type Consensi = {
+  benessere: string | null;
+  ia: string | null;
 };
 
 export type Checkin = {
@@ -106,4 +120,5 @@ export const DEFAULT_SETTINGS: Settings = {
     notifiche: true,
   },
   tema: 'dark',
+  consensi: { benessere: null, ia: null },
 };

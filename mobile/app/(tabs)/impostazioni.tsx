@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { View, ScrollView, Alert, Linking, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
 
 import { useApp } from '../../src/data/store';
 import * as C from '../../src/core/calc';
@@ -15,13 +16,15 @@ import {
 } from '../../src/ui/components';
 import { S } from '../../src/ui/theme';
 import { SINCRONIZZAZIONE_DISPONIBILE } from '../../src/config';
+import { CONTATTO } from '../../src/core/legale';
 
 export default function Impostazioni() {
   const p = usePalette();
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
   const { user } = useUser();
-  const { data, aggiornaImpostazioni, sincronizza, sincronizzando, sync, scollega } = useApp();
+  const router = useRouter();
+  const { data, aggiornaImpostazioni, sincronizza, sincronizzando, sync, scollega, eliminaTutto } = useApp();
   const st = data.settings;
 
   const [permessi, setPermessi] = useState<Geo.PermessiGeo | null>(null);
@@ -47,8 +50,8 @@ export default function Impostazioni() {
       Alert.alert(
         'Serve "Consenti sempre"',
         Platform.OS === 'ios'
-          ? 'In Impostazioni > Percentage > Posizione scegli "Sempre": solo così il sistema può avvisare l\'app quando arrivi o esci, anche se è chiusa.'
-          : 'In Impostazioni > App > Percentage > Autorizzazioni > Posizione scegli "Consenti sempre".',
+          ? 'In Impostazioni > Work Balance > Posizione scegli "Sempre": solo così il sistema può avvisare l\'app quando arrivi o esci, anche se è chiusa.'
+          : 'In Impostazioni > App > Work Balance > Autorizzazioni > Posizione scegli "Consenti sempre".',
         [{ text: 'Ok' }, { text: 'Apri impostazioni', onPress: () => Linking.openSettings() }]
       );
     }
@@ -90,6 +93,48 @@ export default function Impostazioni() {
         },
       },
     ]);
+  }
+
+  /* Due conferme, non una. La seconda chiede di scrivere una parola: è
+     l'unico modo per distinguere "voglio cancellare tutto" da un dito
+     finito sul pulsante sbagliato. */
+  function eliminaAccount() {
+    Alert.alert(
+      'Eliminare account e dati?',
+      'Vengono eliminati definitivamente i turni sul server, quelli su questo telefono e il tuo account. Non è reversibile.',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        {
+          text: 'Continua',
+          style: 'destructive',
+          onPress: () => Alert.prompt
+            ? Alert.prompt('Conferma', 'Scrivi ELIMINA in maiuscolo per confermare.', [
+                { text: 'Annulla', style: 'cancel' },
+                { text: 'Elimina', style: 'destructive', onPress: (t?: string) => procedi(t ?? '') },
+              ])
+            // Alert.prompt non esiste su Android: lì la seconda conferma è
+            // un secondo avviso esplicito, non un campo di testo.
+            : Alert.alert('Confermi?', 'Ultimo passaggio: l\'eliminazione è definitiva.', [
+                { text: 'Annulla', style: 'cancel' },
+                { text: 'Elimina', style: 'destructive', onPress: () => procedi('ELIMINA') },
+              ]),
+        },
+      ]
+    );
+  }
+
+  async function procedi(parola: string) {
+    if (parola.trim().toUpperCase() !== 'ELIMINA') { Alert.alert('Cancellazione annullata.'); return; }
+    const esito = await eliminaTutto();
+    if (esito.account) {
+      await signOut();
+      Alert.alert('Fatto', 'Account e dati eliminati.');
+    } else if (esito.righe) {
+      await signOut();
+      Alert.alert('Dati eliminati', `L'account di accesso non è stato chiuso: scrivi a ${CONTATTO} per chiuderlo.`);
+    } else {
+      Alert.alert('Non riuscito', esito.errore ?? 'Riprova con la connessione attiva.');
+    }
   }
 
   const giorni = [1, 2, 3, 4, 5, 6, 0];
@@ -263,6 +308,43 @@ export default function Impostazioni() {
         </Txt>
       </Card>
 
+      {/* ---------------- privacy, consensi e diritti ---------------- */}
+      <Card>
+        <Titolo>Privacy, consensi e diritti</Titolo>
+        <Txt dim size={13} style={{ marginTop: 6, lineHeight: 20 }}>
+          Che cosa viene raccolto, perché, chi lo vede e per quanto tempo: è tutto scritto
+          nell'informativa, in italiano leggibile.
+        </Txt>
+        <Riga gap={S.sm} style={{ marginTop: S.md, flexWrap: 'wrap' }}>
+          <Btn title="Informativa privacy" piccolo onPress={() => router.push('/privacy')} />
+          <Btn title="Come viene usata l'IA" piccolo variante="fantasma" onPress={() => router.push({ pathname: '/privacy', params: { doc: 'ia' } })} />
+        </Riga>
+
+        <View style={{ marginTop: S.lg }}>
+          <Interruttore
+            label="Questionario sul benessere"
+            descrizione="Le risposte riguardano la tua salute: senza consenso il questionario non si apre."
+            value={!!st.consensi.benessere}
+            onChange={v => aggiornaImpostazioni({ consensi: { ...st.consensi, benessere: v ? new Date().toISOString() : null } })}
+          />
+          {!!st.consensi.benessere && (
+            <Txt dim size={11} style={{ marginTop: 4 }}>
+              {`Consenso dato il ${new Date(st.consensi.benessere).toLocaleDateString('it-IT')}`}
+            </Txt>
+          )}
+        </View>
+
+        <View style={{ marginTop: S.lg }}>
+          <Txt dim size={12.5} style={{ lineHeight: 19 }}>
+            Esportare i dati in un formato leggibile si fa dal sito, dalla sezione Impostazioni.
+            Qui puoi eliminare tutto: i dati sul server, quelli sul telefono e l'account.
+          </Txt>
+          <Btn title="Elimina account e dati" variante="pericolo" piccolo onPress={eliminaAccount} style={{ marginTop: S.sm }} />
+        </View>
+
+        <Txt dim size={11} style={{ marginTop: S.md }}>{`Per ogni altra richiesta sui tuoi dati: ${CONTATTO}`}</Txt>
+      </Card>
+
       <Card>
         <Titolo>Aspetto</Titolo>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: S.md }}>
@@ -274,7 +356,7 @@ export default function Impostazioni() {
       </Card>
 
       <Txt dim size={11} style={{ textAlign: 'center', marginTop: S.sm }}>
-        Percentage · i turni sono sul dispositivo e sul tuo account
+        Work Balance · i turni sono sul dispositivo e sul tuo account
       </Txt>
     </ScrollView>
   );

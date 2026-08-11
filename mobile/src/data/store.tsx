@@ -14,7 +14,7 @@ import {
   SyncState, EMPTY_SYNC, clearAll,
   markShiftDirty, markShiftDeleted, markCheckinDirty, markCheckinDeleted,
 } from './storage';
-import { syncNow, resetClient, registraProfilo } from './sync';
+import { syncNow, resetClient, registraProfilo, eliminaTuttoSulServer } from './sync';
 import { SINCRONIZZAZIONE_DISPONIBILE } from '../config';
 import * as Geo from '../services/geofencing';
 
@@ -34,6 +34,7 @@ type Ctx = {
   eliminaCheckin: (id: string) => void;
   sincronizza: (silenzioso?: boolean) => Promise<string | null>;
   scollega: () => Promise<void>;
+  eliminaTutto: () => Promise<{ righe: boolean; account: boolean; errore: string | null }>;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -182,13 +183,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     syncRef.current = { ...EMPTY_SYNC };
   }, []);
 
+  /* Cancellazione completa: righe sul server, poi l'account Clerk, poi il
+     dispositivo. L'ordine non è estetico — chiuso l'account il token non
+     vale più e le righe resterebbero lì senza nessuno autorizzato a
+     toglierle. L'esito è dettagliato apposta: su una cancellazione un
+     generico "non riuscito" costringerebbe a fidarsi, e non ci si fida. */
+  const eliminaTutto = useCallback(async () => {
+    const esito = { righe: false, account: false, errore: null as string | null };
+
+    const sul = await eliminaTuttoSulServer(getToken, userId ?? '');
+    esito.righe = sul.fatto;
+    if (!sul.fatto) { esito.errore = sul.errore; return esito; }
+
+    try {
+      // Richiede che nel pannello Clerk sia consentito eliminare il proprio
+      // account; se non lo è, i dati sono già spariti e resta il solo profilo.
+      if (user) await user.delete();
+      esito.account = true;
+    } catch (e: any) {
+      esito.errore = e?.message ?? String(e);
+    }
+
+    await scollega();
+    return esito;
+  }, [getToken, userId, user, scollega]);
+
   const value = useMemo<Ctx>(() => ({
     data, pronto, sync, sincronizzando,
     aggiornaImpostazioni, salvaTurno, eliminaTurno,
     entrata, pausa, uscita, annullaTimbratura,
-    aggiungiCheckin, eliminaCheckin, sincronizza, scollega,
+    aggiungiCheckin, eliminaCheckin, sincronizza, scollega, eliminaTutto,
   }), [data, pronto, sync, sincronizzando, aggiornaImpostazioni, salvaTurno, eliminaTurno,
-       entrata, pausa, uscita, annullaTimbratura, aggiungiCheckin, eliminaCheckin, sincronizza, scollega]);
+       entrata, pausa, uscita, annullaTimbratura, aggiungiCheckin, eliminaCheckin, sincronizza,
+       scollega, eliminaTutto]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

@@ -90,7 +90,9 @@
     } else {
       app.classList.add('hidden');
       landing.classList.remove('hidden');
-      landing.innerHTML = UI.landing(s);
+      // L'informativa si legge anche da qui: chi deve decidere se registrarsi
+      // ha il diritto di sapere prima che cosa succede ai suoi dati.
+      landing.innerHTML = ctx.docLanding ? UI.documenti(ctx, true) : UI.landing(s);
       I18n.traduciDOM(landing);
     }
     return s.entra;
@@ -108,7 +110,8 @@
       statistiche: T('Andamento nel tempo'),
       benessere: T('Prevenzione di stress e burnout'),
       impostazioni: T('Contratto, dati e app'),
-      admin: T('Tutti gli utenti e i loro dati')
+      admin: T('Tutti gli utenti e i loro dati'),
+      privacy: T('Dati personali e intelligenza artificiale')
     };
     if (sub) sub.textContent = titles[ctx.view] || '';
 
@@ -119,6 +122,7 @@
 
     var html = '';
     switch (ctx.view) {
+      case 'privacy': html = UI.documenti(ctx, false); break;
       case 'turni': html = UI.turni(ctx); break;
       case 'statistiche': html = UI.statistiche(ctx); break;
       case 'benessere': html = UI.benessere(ctx); break;
@@ -216,6 +220,9 @@
 
   function aiSend(text) {
     if (!text) return;
+    // Ultimo controllo prima di uscire dal dispositivo: nascondere il pannello
+    // non basta, ciò che conta è che senza consenso non parta la richiesta.
+    if (!Store.consenso('ia')) { toast('Serve prima il tuo consenso all\'uso dell\'IA.'); return; }
     ctx.chat.push({ role: 'user', content: text });
     ctx.aiBusy = true;
     render();
@@ -227,6 +234,38 @@
     }).then(function () {
       ctx.aiBusy = false;
       render();
+    });
+  }
+
+  /* ---------------- cancellazione dell'account ----------------
+
+     Due conferme, non una. La prima è la domanda, la seconda chiede di
+     scrivere una parola: è l'unico modo per distinguere "voglio cancellare
+     tutto" da un dito finito sul pulsante sbagliato. */
+
+  function eliminaAccount() {
+    if (!global.Cloud || !global.Cloud.connesso()) { toast('Nessun account collegato.'); return; }
+    if (!global.confirm(T('Stai per eliminare definitivamente il tuo account, i turni sul server e quelli su questo dispositivo. Non è reversibile. Vuoi continuare?'))) return;
+
+    var atteso = T('ELIMINA');
+    var scritto = global.prompt(T('Per confermare, scrivi {parola} in maiuscolo.', { parola: atteso }));
+    if (!scritto || scritto.trim().toUpperCase() !== atteso.toUpperCase()) { toast('Cancellazione annullata.'); return; }
+
+    toast('Cancellazione in corso…', 8000);
+    global.Cloud.eliminaTutto().then(function (esito) {
+      ctx.chat = [];
+      ctx.docLanding = false;
+      try { localStorage.removeItem(CHIAVE_ACCESSO); } catch (e) { /* ignorato */ }
+      if (esito.account) {
+        toast('Account e dati eliminati.', 5000);
+      } else if (esito.righe) {
+        // Distinzione che serve davvero: i dati non ci sono più, ma il
+        // profilo di accesso sì, e va detto invece di lasciarlo credere.
+        toast(T('Dati eliminati. L\'account di accesso non è stato chiuso: scrivi a {contatto} per chiuderlo.', { contatto: Legale.contatto }), 9000);
+      } else {
+        toast(T('Cancellazione non riuscita: {errore}', { errore: esito.errore || '' }), 9000);
+      }
+      renderGate();
     });
   }
 
@@ -243,6 +282,43 @@
     switch (action) {
       case 'goto':
         go(el.dataset.view);
+        break;
+
+      /* --- informativa e nota sull'IA --- */
+      case 'doc':
+        ctx.doc = el.dataset.doc === 'ia' ? 'ia' : 'privacy';
+        if (document.getElementById('app').classList.contains('hidden')) {
+          ctx.docLanding = true;
+          renderGate();
+          global.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          go('privacy');
+        }
+        break;
+
+      case 'chiudi-doc':
+        ctx.docLanding = false;
+        renderGate();
+        break;
+
+      /* --- consensi ---
+         Darlo è un clic, toglierlo è lo stesso clic: è quello che l'art. 7
+         intende con "revocabile con la stessa facilità". */
+      case 'consenti':
+        Store.impostaConsenso(el.dataset.consenso, true);
+        toast('Consenso registrato.');
+        render();
+        break;
+
+      case 'revoca-ia':
+        Store.impostaConsenso('ia', false);
+        ctx.chat = [];
+        toast('Consenso revocato: la conversazione è stata svuotata.');
+        render();
+        break;
+
+      case 'elimina-account':
+        eliminaAccount();
         break;
 
       case 'new-shift':
@@ -600,12 +676,12 @@
         break;
 
       case 'export-json':
-        download('percentage-backup-' + Calc.today() + '.json', Store.exportJSON(), 'application/json');
+        download('work-balance-backup-' + Calc.today() + '.json', Store.exportJSON(), 'application/json');
         toast('Backup esportato.');
         break;
 
       case 'export-csv':
-        download('percentage-turni-' + Calc.today() + '.csv', Store.exportCSV(), 'text/csv');
+        download('work-balance-turni-' + Calc.today() + '.csv', Store.exportCSV(), 'text/csv');
         toast('CSV esportato.');
         break;
 
@@ -613,18 +689,34 @@
         document.getElementById('import-file').click();
         break;
 
-      case 'wipe':
-        if (global.confirm('Cancellare tutti i turni e i check-in salvati? L\'operazione non è reversibile.')) {
-          Store.wipe();
-          toast('Dati cancellati.');
-          render();
-        }
+      case 'wipe': {
+        var suServer = !!(global.Cloud && global.Cloud.connesso());
+        if (!global.confirm(suServer
+          ? T('Cancellare tutti i turni e i check-in, qui e sul server? L\'operazione non è reversibile.')
+          : T('Cancellare tutti i turni e i check-in salvati? L\'operazione non è reversibile.'))) break;
+        // Uno a uno, non in blocco: solo così restano le lapidi che dicono al
+        // server di cancellare anche lì. Un azzeramento locale e basta
+        // tornerebbe indietro alla prima sincronizzazione.
+        Store.shifts().slice().forEach(function (t) { Store.deleteShift(t.id); });
+        Store.checkins().slice().forEach(function (c) { Store.deleteCheckin(c.id); });
+        if (suServer) global.Cloud.sincronizza(true);
+        toast(suServer ? 'Dati cancellati, qui e sul server.' : 'Dati cancellati.');
+        render();
         break;
+      }
     }
   }
 
   function onChange(e) {
     var el = e.target;
+
+    if (el.dataset && el.dataset.consenso) {
+      Store.impostaConsenso(el.dataset.consenso, el.checked);
+      if (el.dataset.consenso === 'ia' && !el.checked) ctx.chat = [];
+      toast(el.checked ? 'Consenso registrato.' : 'Consenso revocato.');
+      render();
+      return;
+    }
 
     if (el.dataset && el.dataset.geo) {
       var gk = el.dataset.geo;
@@ -866,7 +958,7 @@
     var foot = document.querySelector('.foot span');
     if (foot) foot.textContent = T('I dati restano sul tuo dispositivo.');
 
-    document.title = T('Percentage — Turni, ore e benessere');
+    document.title = T('Work Balance — Turni, ore e benessere');
   }
 
   /* ---------------- avvio ---------------- */
@@ -999,5 +1091,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  global.App = { ctx: ctx, render: render, renderGate: renderGate, go: go, toast: toast };
+  global.App = { ctx: ctx, render: render, renderGate: renderGate, go: go, toast: toast, aiSend: aiSend };
 })(window);

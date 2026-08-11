@@ -44,6 +44,9 @@ export function normalizeSettings(input: Partial<Settings> | undefined): Setting
     ...(input || {}),
     orario: { ...DEFAULT_SETTINGS.orario, ...(input?.orario || {}) },
     geo: { ...DEFAULT_SETTINGS.geo, ...(input?.geo || {}) },
+    // Copia sempre nuova: DEFAULT_SETTINGS è condiviso per riferimento e una
+    // modifica in place lo trasformerebbe nel consenso di tutti.
+    consensi: { ...DEFAULT_SETTINGS.consensi, ...(input?.consensi || {}) },
   };
   return deriveOrario(merged);
 }

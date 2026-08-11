@@ -8,6 +8,7 @@ import { View, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Pr
 import { useSignIn, useSignUp, useSSO } from '@clerk/clerk-expo';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import { useRouter } from 'expo-router';
 import { Btn, Campo, Card, Nota, Txt, usePalette, Riga } from '../src/ui/components';
 import { LogoApple, LogoFacebook, LogoGoogle } from '../src/ui/loghi';
 import { S, R } from '../src/ui/theme';
@@ -20,6 +21,7 @@ type Provider = 'oauth_google' | 'oauth_apple' | 'oauth_facebook';
 
 export default function Accedi() {
   const p = usePalette();
+  const router = useRouter();
   const { signIn, setActive: setActiveSignIn, isLoaded: signInPronto } = useSignIn();
   const { signUp, setActive: setActiveSignUp, isLoaded: signUpPronto } = useSignUp();
   const { startSSOFlow } = useSSO();
@@ -177,7 +179,7 @@ export default function Accedi() {
           <View style={{ width: 66, height: 66, borderRadius: 18, backgroundColor: p.accent, alignItems: 'center', justifyContent: 'center' }}>
             <Txt size={34} weight="700" style={{ color: '#fff' }}>%</Txt>
           </View>
-          <Txt size={23} weight="700" style={{ marginTop: S.md }}>Percentage</Txt>
+          <Txt size={23} weight="700" style={{ marginTop: S.md }}>Work Balance</Txt>
           <Txt dim size={14} style={{ marginTop: 4, textAlign: 'center' }}>
             Turni, ore lavorate e benessere
           </Txt>
@@ -279,6 +281,12 @@ export default function Accedi() {
           I turni restano sul dispositivo e vengono sincronizzati sul tuo account,
           così li ritrovi identici su telefono e computer.
         </Txt>
+
+        {/* Prima di creare un account, non dopo: è qui che si decide se dare
+            i propri dati, quindi è qui che dev'essere leggibile l'informativa. */}
+        <Pressable onPress={() => router.push('/privacy')} style={{ alignSelf: 'center', marginTop: S.sm, padding: 8 }}>
+          <Text style={{ color: p.accent, fontSize: 12, fontWeight: '600' }}>Informativa privacy</Text>
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

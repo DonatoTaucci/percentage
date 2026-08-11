@@ -19,7 +19,17 @@
     inizioSettimana: 1,           // 1 = lunedì, 0 = domenica
     arrotondamento: 1,            // minuti a cui arrotondare la timbratura
     geo: null,                    // rilevamento GPS, vedi geo.js
-    tema: 'dark'
+    tema: 'dark',
+    /* Consensi, con la data in cui sono stati dati (null = mai dato).
+
+       Stanno nelle impostazioni, quindi seguono l'account: chi acconsente
+       dal telefono non se lo ritrova da rifare sul computer, e chi revoca
+       revoca ovunque. La data serve a dimostrare quando è stato raccolto,
+       che è metà di ciò che l'art. 7 GDPR chiede di poter provare. */
+    consensi: {
+      benessere: null,            // check-in: sono dati sulla salute (art. 9)
+      ia: null                    // invio del riepilogo ad Anthropic
+    }
   };
 
   // Coda di sincronizzazione: che cosa è cambiato in locale e non è ancora sul server.
@@ -75,6 +85,9 @@
     var presenza = diffMin(o.inizio, o.fine);
     settings.pausaPredefinita = pausa;
     settings.oreGiornaliere = Math.max(0, (presenza - (settings.pausaRetribuita ? 0 : pausa))) / 60;
+    // Copia sempre nuova: DEFAULT_SETTINGS è condiviso per riferimento e una
+    // modifica in place lo trasformerebbe nel consenso di tutti.
+    settings.consensi = Object.assign({ benessere: null, ia: null }, settings.consensi);
     return settings;
   }
 
@@ -152,6 +165,20 @@
       }
       markSync({ dirtySettings: true });
       commit();
+    },
+
+    /* --- consensi ---
+
+       Il consenso non è un interruttore qualsiasi: dev'essere un atto
+       positivo, e deve poter essere ritirato con la stessa facilità con cui
+       è stato dato (art. 7 GDPR). Da qui passano entrambe le direzioni. */
+    consenso: function (nome) { return !!(state.settings.consensi || {})[nome]; },
+    dataConsenso: function (nome) { return (state.settings.consensi || {})[nome] || null; },
+
+    impostaConsenso: function (nome, dato) {
+      var c = Object.assign({}, state.settings.consensi);
+      c[nome] = dato ? new Date().toISOString() : null;
+      Store.updateSettings({ consensi: c });
     },
 
     /* --- timbratura --- */
@@ -410,6 +437,20 @@
     wipe: function () {
       state.shifts = [];
       state.checkins = [];
+      commit();
+    },
+
+    /* Cancellazione vera, quella che si chiede esercitando un diritto: non
+       restano né impostazioni, né timbratura aperta, né chiave dell'IA, né
+       la coda di sincronizzazione. Il dispositivo torna come al primo avvio. */
+    wipeTotale: function () {
+      state.shifts = [];
+      state.checkins = [];
+      state.punch = null;
+      state.sync = Object.assign({}, EMPTY_SYNC);
+      state.aiKey = '';
+      state.settings = derive(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)));
+      try { global.localStorage.removeItem(KEY); } catch (e) { /* già via */ }
       commit();
     }
   };

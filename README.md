@@ -1,4 +1,4 @@
-# Percentage
+# Work Balance
 
 Timbra entrata e uscita, calcola la **percentuale di ore lavorate** su giorno, settimana e mese
 tenendo conto degli **straordinari**, e monitora il rischio di **burnout, stress e ansia da lavoro**.
@@ -98,7 +98,8 @@ il collegamento fra Clerk e Supabase).
 - Alla prima visita viene proposta la lingua del browser, se fra quelle disponibili.
 - Nomi di mesi e giorni vengono dal sistema (`Intl`), non da un elenco tradotto a mano.
 - Restano in italiano i testi lunghi dei consigli anti-burnout; l'assistente IA risponde
-  nella lingua in cui gli si scrive.
+  nella lingua dell'interfaccia.
+- Tradotte anche l'informativa privacy e la nota sull'IA, per intero.
 
 **Benessere (prevenzione burnout)**
 - Check-in di 16 domande su energia, sonno, recupero, carico, confini, ansia, motivazione e supporto.
@@ -141,6 +142,7 @@ Per GitHub Pages: *Settings → Pages → Deploy from a branch*, scegliere il br
 npm run chiavi            # rilegge le frasi rendendo ogni schermata in Chromium
 npm run chiavi:verifica   # esce con errore se ci sono frasi nuove o sparite
 npm run lingue            # copertura dei dizionari e coerenza dei segnaposto
+npm run legale            # informativa del sito e dell'app allineate frase per frase
 ```
 
 Le chiavi sono i testi italiani (`js/lang/_chiavi.json`), i dizionari stanno in `js/lang/`.
@@ -172,6 +174,36 @@ In **Impostazioni** si definiscono:
 ---
 
 ## Dati e privacy
+
+Il progetto ha un'**informativa privacy** e una **nota sull'intelligenza artificiale** scritte per
+essere lette: raggiungibili dalla presentazione (prima di creare un account, che è il momento in cui
+la decisione si prende), dalle Impostazioni del sito e dalla schermata Privacy dell'app.
+
+Il testo è uno solo per i due client — `js/legale.js` per il sito, `mobile/src/core/legale.ts` per
+l'app — e `node scripts/controlla-legale.mjs` confronta le due copie frase per frase: un documento
+legale che dice due cose diverse a seconda del client sarebbe peggio di nessun documento.
+
+**Consensi.** Due trattamenti sono spenti in partenza e non partono senza un atto esplicito:
+
+- il **questionario sul benessere**, perché le risposte riguardano la salute (art. 9 GDPR): senza
+  consenso il questionario non si apre, quindi quei dati non nascono proprio;
+- la **conversazione con l'IA**: senza consenso non parte nessuna richiesta, e il controllo è nel
+  modulo che invia, non solo nel pannello che si nasconde.
+
+Il consenso si toglie con lo stesso interruttore con cui si dà, e viaggia con le impostazioni:
+darlo dal telefono vale anche sul sito, revocarlo revoca ovunque. Viene salvata la data.
+
+**Diritti esercitabili senza chiedere niente a nessuno:** esportazione in JSON e CSV (portabilità),
+modifica di qualsiasi dato (rettifica), *Elimina account e dati* (cancellazione) che rimuove le
+righe sul server, l'archivio locale e l'account Clerk — in quest'ordine, perché chiuso l'account il
+token non vale più e le righe resterebbero senza nessuno autorizzato a toglierle.
+
+**Trasparenza sull'IA.** L'indice di rischio e i consigli non sono IA: sono regole fisse eseguite sul
+dispositivo, e a parità di dati danno sempre lo stesso risultato. L'unica parte con un modello è la
+conversazione facoltativa, dichiarata come tale prima di scriverci e con ogni risposta marcata
+*Generato dall'IA*. La nota dichiara anche l'uso **non** previsto: Work Balance è uno strumento
+personale del lavoratore, non un sistema di monitoraggio o valutazione a disposizione del datore di
+lavoro — impiego che ricadrebbe fra i sistemi ad alto rischio dell'AI Act.
 
 - Senza account nulla esce dal dispositivo: `localStorage` sul sito, archivio locale nell'app.
 - Con l'account, turni, check-in e impostazioni vengono sincronizzati sul progetto Supabase.
@@ -209,6 +241,10 @@ js/charts.js            grafici SVG inline (nessuna libreria)
 js/coach.js             questionario, indice di rischio, consigli
 js/geo.js               timbratura automatica GPS e notifiche
 js/ai.js                integrazione opzionale con l'API di Claude
+js/i18n.js              traduzione dell'interfaccia
+js/lang/                dizionari e elenco delle chiavi
+js/legale.js            informativa privacy e nota sull'IA
+js/admin.js             lettura e modifica dei dati dalla pagina di amministrazione
 js/config.js            chiavi pubbliche (Clerk, Supabase)
 js/cloud.js             accesso Clerk e sincronizzazione (modulo ES separato)
 js/ui.js                rendering delle viste
@@ -217,6 +253,7 @@ sw.js                   cache offline
 manifest.webmanifest    installazione come app
 tests/calcoli.test.js   test dei calcoli e del motore benessere
 tests/timbratura.test.js test della timbratura e della logica GPS
+tests/privacy.test.js   test dei consensi e della trasparenza sull'IA
 ```
 
 Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
@@ -224,11 +261,12 @@ Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
 ## Test
 
 ```bash
-# sito (42 test in un browser headless)
+# sito (62 test in un browser headless)
 python3 -m http.server 8765 &
 npx playwright install chromium     # solo la prima volta
 node tests/calcoli.test.js
 node tests/timbratura.test.js
+node tests/privacy.test.js
 
 # app (45 test della logica pura, senza emulatore)
 cd mobile && npm test

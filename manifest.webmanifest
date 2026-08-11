@@ -1,6 +1,6 @@
 {
-  "name": "Percentage — Turni, ore e benessere",
-  "short_name": "Percentage",
+  "name": "Work Balance — Turni, ore e benessere",
+  "short_name": "Work Balance",
   "description": "Registra turni e pause, calcola la percentuale di ore lavorate su giorno, settimana e mese, tiene conto degli straordinari e aiuta a prevenire burnout e stress da lavoro.",
   "lang": "it",
   "start_url": "./index.html",

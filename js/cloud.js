@@ -17,19 +17,19 @@ const PACCHETTI = { it: 'itIT', en: 'enUS', es: 'esES', fr: 'frFR', de: 'deDE' }
    titleCombined al posto di title: sovrascrivendo solo il secondo restava
    in vista il nome dell'applicazione come registrata su Clerk. */
 const TITOLI = {
-  it: { titolo: 'Accedi a Percentage', sotto: 'Bentornato: accedi per continuare.',
+  it: { titolo: 'Accedi a Work Balance', sotto: 'Bentornato: accedi per continuare.',
         insieme: 'Accedi o registrati', sottoInsieme: 'Se non hai un account, viene creato al primo accesso.',
         registra: 'Crea il tuo account', sottoRegistra: 'Bastano pochi secondi.' },
-  en: { titolo: 'Sign in to Percentage', sotto: 'Welcome back — sign in to continue.',
+  en: { titolo: 'Sign in to Work Balance', sotto: 'Welcome back — sign in to continue.',
         insieme: 'Sign in or sign up', sottoInsieme: 'No account yet? One is created on your first sign-in.',
         registra: 'Create your account', sottoRegistra: 'It only takes a few seconds.' },
-  es: { titolo: 'Entra en Percentage', sotto: 'Bienvenido de nuevo: inicia sesión para continuar.',
+  es: { titolo: 'Entra en Work Balance', sotto: 'Bienvenido de nuevo: inicia sesión para continuar.',
         insieme: 'Entra o regístrate', sottoInsieme: 'Si no tienes cuenta, se crea al primer acceso.',
         registra: 'Crea tu cuenta', sottoRegistra: 'Solo lleva unos segundos.' },
-  fr: { titolo: 'Connexion à Percentage', sotto: 'Bon retour : connecte-toi pour continuer.',
+  fr: { titolo: 'Connexion à Work Balance', sotto: 'Bon retour : connecte-toi pour continuer.',
         insieme: 'Se connecter ou s\'inscrire', sottoInsieme: 'Pas encore de compte ? Il est créé à la première connexion.',
         registra: 'Crée ton compte', sottoRegistra: 'Cela prend quelques secondes.' },
-  de: { titolo: 'Bei Percentage anmelden', sotto: 'Willkommen zurück — melde dich an, um fortzufahren.',
+  de: { titolo: 'Bei Work Balance anmelden', sotto: 'Willkommen zurück — melde dich an, um fortzufahren.',
         insieme: 'Anmelden oder registrieren', sottoInsieme: 'Noch kein Konto? Es wird bei der ersten Anmeldung angelegt.',
         registra: 'Konto erstellen', sottoRegistra: 'Das dauert nur ein paar Sekunden.' }
 };
@@ -244,6 +244,48 @@ async function apriRegistrazione() {
   });
 }
 
+/* Cancellazione completa: righe sul server, poi l'account.
+
+   L'ordine conta. Le policy per riga concedono l'accesso in base al token:
+   chiuso l'account il token non vale più e le righe resterebbero lì, senza
+   più nessuno autorizzato a toglierle. Prima i dati, poi la porta.
+
+   Il risultato è dettagliato apposta: "non è riuscito" senza dire quale
+   pezzo costringerebbe a fidarsi, e su una cancellazione non ci si fida. */
+async function eliminaTutto() {
+  const esito = { righe: false, account: false, errore: null };
+
+  if (stato.supabase && stato.utente) {
+    const uid = stato.utente.id;
+    try {
+      for (const tabella of ['shifts', 'checkins', 'settings', 'punches', 'profili']) {
+        const { error } = await stato.supabase.from(tabella).delete().eq('user_id', uid);
+        if (error) throw new Error(tabella + ': ' + error.message);
+      }
+      esito.righe = true;
+    } catch (err) {
+      esito.errore = String(err && err.message || err);
+      return esito;
+    }
+  } else {
+    esito.righe = true;   // niente da cancellare sul server
+  }
+
+  try {
+    // Richiede che nel pannello Clerk sia consentito eliminare il proprio
+    // account; se non lo è, i dati sono già spariti e resta il solo profilo.
+    if (stato.clerk && stato.clerk.user) await stato.clerk.user.delete();
+    esito.account = true;
+  } catch (err) {
+    esito.errore = String(err && err.message || err);
+  }
+
+  Store.wipeTotale();
+  stato.utente = null;
+  notifica();
+  return esito;
+}
+
 async function esci() {
   if (!stato.clerk) return;
   await sincronizza(true);
@@ -388,6 +430,7 @@ window.Cloud = {
   apriRegistrazione,
   riprova,
   esci,
+  eliminaTutto,
   sincronizza
 };
 
