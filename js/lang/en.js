@@ -586,3 +586,34 @@ Object.assign(window.I18N.en, {
 Object.assign(window.I18N.en, {
   "Posso ragionare sui tuoi dati: ore, straordinari, giorni consecutivi e ultimo check-in. Chiedimi qualcosa, oppure usa il pulsante qui sotto per una lettura completa del periodo.": "I can reason over your data: hours, overtime, consecutive days and the last check-in. Ask me something, or use the button below for a full read of the period."
 });
+
+/* Eliminazione di un account dalla scheda di amministrazione. */
+Object.assign(window.I18N.en, {
+  "Account eliminati": "Deleted accounts",
+  "Account eliminato, ma l'email non è partita ({nota}). Avvisa la persona a mano.": "Account deleted, but the email did not go out ({nota}). Let the person know yourself.",
+  "Account eliminato. Email inviata a {email}.": "Account deleted. Email sent to {email}.",
+  "È un amministratore: togli prima il ruolo.": "This is an administrator: remove the role first.",
+  "Elimina e invia l'email": "Delete and send the email",
+  "Elimina l'account": "Delete the account",
+  "Elimina l'account, i suoi dati sul server e l'accesso. La persona riceve un'email con la motivazione che scrivi. Non è reversibile.": "Deletes the account, its data on the server and the sign-in. The person receives an email with the reason you write. This cannot be undone.",
+  "Elimina questo account": "Delete this account",
+  "Eliminare definitivamente {utente}? Riceverà un'email con la motivazione.": "Permanently delete {utente}? They will receive an email with the reason.",
+  "Eliminazione in corso…": "Deleting…",
+  "Eliminazione non riuscita: {errore}": "Deletion failed: {errore}",
+  "Email": "Email",
+  "Il registro conserva indirizzo e motivazione anche dopo la cancellazione: serve a rendere conto della decisione e a rispondere se viene contestata. Lo vedono solo gli amministratori.": "The log keeps the address and the reason even after deletion: it serves to account for the decision and to answer if it is challenged. Only administrators can see it.",
+  "Il tuo account si chiude dalle impostazioni, non da qui.": "Your own account is closed from the settings, not from here.",
+  "inviata": "sent",
+  "La motivazione che scrivi qui sotto viene inviata a quella persona parola per parola. Scrivila come se dovessi rileggerla davanti a lei.": "The reason you write below is sent to that person word for word. Write it as if you had to read it back in front of them.",
+  "La motivazione è troppo corta.": "The reason is too short.",
+  "Motivazione": "Reason",
+  "Motivazione (obbligatoria, almeno {0} caratteri)": "Reason (required, at least {0} characters)",
+  "Nessun account eliminato finora.": "No account deleted so far.",
+  "Non hai il permesso di eliminare account.": "You do not have permission to delete accounts.",
+  "non inviata": "not sent",
+  "Quando": "When",
+  "Quello che ha salvato sul proprio dispositivo resta lì: non possiamo cancellarlo a distanza, e l'email glielo dice.": "Whatever they saved on their own device stays there: we cannot erase it remotely, and the email says so.",
+  "Scrivi una motivazione di almeno 10 caratteri: viene inviata alla persona.": "Write a reason of at least 10 characters: it is sent to the person.",
+  "Un caso a parte: se un amministratore chiude un account per un uso contrario alle condizioni, del passaggio resta un registro con l'indirizzo email, la motivazione e la data. Serve a rendere conto della decisione e a poter rispondere se viene contestata, e lo vedono solo gli amministratori. La motivazione viene comunicata per email alla persona interessata nel momento in cui la chiusura avviene.": "One case apart: if an administrator closes an account for use contrary to the terms, a log of it remains with the email address, the reason and the date. It serves to account for the decision and to be able to answer if it is challenged, and only administrators can see it. The reason is communicated by email to the person concerned at the moment the closure happens.",
+  "Vengono eliminati dal server i suoi turni, i check-in, le impostazioni, i ruoli e l'anagrafica, e viene chiuso l'accesso.": "Their shifts, check-ins, settings, roles and profile are deleted from the server, and the sign-in is closed."
+});

@@ -83,7 +83,8 @@ export const INFORMATIVA: Documento = {
         "paragrafi": [
           "Sul dispositivo: finché non li cancelli tu o non disinstalli l'applicazione. Il pulsante di cancellazione nelle impostazioni li rimuove subito.",
           "Sul server: finché tieni l'account. Quando chiedi la cancellazione dell'account, turni, check-in, impostazioni e anagrafica vengono eliminati contestualmente; le copie di sicurezza del fornitore del database si sovrascrivono nell'arco di trenta giorni.",
-          "I registri tecnici dei fornitori seguono i loro tempi di conservazione, nell'ordine di alcune settimane."
+          "I registri tecnici dei fornitori seguono i loro tempi di conservazione, nell'ordine di alcune settimane.",
+          "Un caso a parte: se un amministratore chiude un account per un uso contrario alle condizioni, del passaggio resta un registro con l'indirizzo email, la motivazione e la data. Serve a rendere conto della decisione e a poter rispondere se viene contestata, e lo vedono solo gli amministratori. La motivazione viene comunicata per email alla persona interessata nel momento in cui la chiusura avviene."
         ]
       },
       {

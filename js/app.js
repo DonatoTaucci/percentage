@@ -190,6 +190,55 @@
     prev.textContent = parti.join(' · ');
   }
 
+  /* Il modale ospita più moduli. Si smista su un campo nascosto invece che
+     sulla presenza di un campo: "c'è la data quindi è un turno" funziona
+     finché non arriva il secondo modulo con una data dentro. */
+  function submitModale(e) {
+    var quale = (modalBody.querySelector('[name=modulo]') || {}).value || 'turno';
+    if (quale === 'elimina-utente') return submitEliminaUtente(e);
+    return submitShift(e);
+  }
+
+  function submitEliminaUtente(e) {
+    e.preventDefault();
+    var f = modalBody;
+    var userId = (f.querySelector('[name=user_id]') || {}).value || '';
+    var motivo = ((f.querySelector('[name=motivo]') || {}).value || '').trim();
+    if (motivo.length < 10) { toast('Scrivi una motivazione di almeno 10 caratteri: viene inviata alla persona.'); return; }
+
+    var chi = (ctx.adminUtenti || []).filter(function (u) { return u.user_id === userId; })[0] || {};
+    if (!global.confirm(T('Eliminare definitivamente {utente}? Riceverà un\'email con la motivazione.', { utente: chi.email || userId }))) return;
+
+    closeModal();
+    toast('Eliminazione in corso…', 9000);
+    Admin.eliminaUtente(userId, motivo).then(function (esito) {
+      if (esito.email_inviata) {
+        toast(T('Account eliminato. Email inviata a {email}.', { email: esito.email }), 6000);
+      } else {
+        // Distinzione che serve: l'account non c'è più comunque, ma nessuno
+        // gliel'ha detto, e chi amministra deve saperlo per scrivere a mano.
+        toast(T('Account eliminato, ma l\'email non è partita ({nota}). Avvisa la persona a mano.', { nota: esito.note || '' }), 12000);
+      }
+      ctx.adminDati = null;
+      ctx.adminEliminazioni = null;
+      caricaUtentiAdmin();
+      caricaRegistroAdmin();
+    }).catch(function (err) {
+      toast(messaggioEliminazione(err), 9000);
+    });
+  }
+
+  /* I rifiuti della funzione sono pochi e ognuno ha un rimedio diverso:
+     dirlo con il codice tecnico obbligherebbe a indovinare quale. */
+  function messaggioEliminazione(err) {
+    var c = String(err && err.message || '');
+    if (c === 'te-stesso') return T('Il tuo account si chiude dalle impostazioni, non da qui.');
+    if (c === 'e-amministratore') return T('È un amministratore: togli prima il ruolo.');
+    if (c === 'motivazione-troppo-corta') return T('La motivazione è troppo corta.');
+    if (c === 'non-autorizzato' || c === 'non-autenticato') return T('Non hai il permesso di eliminare account.');
+    return T('Eliminazione non riuscita: {errore}', { errore: c });
+  }
+
   function submitShift(e) {
     e.preventDefault();
     var f = modalBody;
@@ -545,6 +594,19 @@
         break;
       }
 
+      case 'admin-elimina-utente': {
+        var bersaglio = (ctx.adminUtenti || []).filter(function (u) { return u.user_id === el.dataset.utente; })[0];
+        modalBody.innerHTML = UI.formEliminaUtente(bersaglio || { user_id: el.dataset.utente, email: '' });
+        I18n.traduciDOM(modalBody);
+        if (typeof modal.showModal === 'function') modal.showModal();
+        else modal.setAttribute('open', 'open');
+        break;
+      }
+
+      case 'admin-registro':
+        caricaRegistroAdmin();
+        break;
+
       case 'admin-apri':
         ctx.adminDati = null;
         render();
@@ -868,10 +930,23 @@
     // Il catalogo dei ruoli serve già per l'elenco: senza, le colonne
     // mostrerebbero i codici grezzi al posto delle etichette.
     Admin.ruoli().then(function (r) { ctx.adminRuoli = r; render(); }).catch(function () { /* etichette grezze */ });
+    caricaRegistroAdmin();
     return Admin.utenti().then(function (u) {
       ctx.adminUtenti = u;
       render();
     }).catch(erroreAdmin);
+  }
+
+  function caricaRegistroAdmin() {
+    ctx.adminEliminazioni = null;
+    render();
+    return Admin.eliminazioni().then(function (r) {
+      ctx.adminEliminazioni = r;
+      render();
+    }).catch(function () {
+      ctx.adminEliminazioni = [];
+      render();
+    });
   }
 
   function ricaricaDatiAdmin() {
@@ -991,7 +1066,7 @@
       if (modal.open && e.target.closest('#modal-body')) updatePreview();
     });
     document.addEventListener('keydown', onKeydown);
-    modalBody.addEventListener('submit', submitShift);
+    modalBody.addEventListener('submit', submitModale);
     modalBody.addEventListener('click', onModalClick);
 
     document.getElementById('btn-theme').addEventListener('click', cambiaTema);

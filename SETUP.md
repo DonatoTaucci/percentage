@@ -162,6 +162,42 @@ Un ruolo con `amministratore = true` dà accesso alla scheda Admin esattamente c
 `admins`: le due strade convivono, quindi l'elenco storico continua a valere e i nuovi
 amministratori si nominano dall'interfaccia.
 
+### Eliminazione di un account dalla scheda Admin
+
+Nella card di un utente c'è **Elimina questo account**. Il modulo chiede una motivazione
+obbligatoria (almeno 10 caratteri) e la funzione `elimina-utente` fa tre cose in
+quest'ordine: cancella le righe sul server e registra la motivazione, chiude l'account su
+Clerk, invia alla persona un'email con la motivazione scritta parola per parola.
+
+Non si può eliminare sé stessi (per quello c'è il pulsante nelle impostazioni) né un altro
+amministratore: prima gli si toglie il ruolo. I due controlli sono nella funzione SQL, non
+nell'interfaccia.
+
+Servono altri tre secret sulla funzione `elimina-utente`:
+
+| Secret | A cosa serve |
+|---|---|
+| `CLERK_SECRET_KEY` | chiudere l'account di accesso (`sk_live_…` o `sk_test_…` da dashboard.clerk.com → API keys) |
+| `RESEND_API_KEY` | inviare l'email (resend.com) |
+| `MITTENTE_EMAIL` | indirizzo del mittente, su un dominio verificato presso Resend |
+
+Facoltativi: `MITTENTE_NOME` (default *Work Balance*) e `CONTATTO_EMAIL`, l'indirizzo a cui
+la persona può rispondere per contestare.
+
+> La **secret key di Clerk** vive qui e solo qui. Nel client non ci va mai — e infatti
+> `scripts/imposta-chiave-clerk.mjs` si rifiuta di scriverla in `js/config.js`. Un secret di
+> una Edge Function è un'altra cosa: sta sul server, non lo vede nessun browser.
+
+**Senza dominio verificato l'email non parte.** Resend consente l'invio libero solo da un
+dominio che hai verificato con i suoi record DNS; l'indirizzo di prova `onboarding@resend.dev`
+scrive soltanto a te stesso. Finché manca, l'eliminazione avviene lo stesso e l'interfaccia
+dice *"Account eliminato, ma l'email non è partita"* con il motivo: chi amministra sa che deve
+scrivere a mano, invece di crederla partita.
+
+Ogni eliminazione finisce nella tabella `eliminazioni`, visibile in fondo alla scheda Admin:
+quando, chi, perché, e se l'email è partita. Conserva l'indirizzo anche dopo la cancellazione,
+ed è dichiarato nell'informativa.
+
 ### Come verificare che funzioni
 
 1. Apri il sito, **Impostazioni → Account → Accedi**, inserisci la tua email e il codice.

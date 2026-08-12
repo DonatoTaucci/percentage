@@ -198,8 +198,32 @@
     });
   }
 
+  /* ---------------- eliminazione di un account ----------------
+
+     Passa dalla funzione sul server perché tre cose devono succedere insieme
+     e due sono fuori dal database: le righe, l'account su Clerk e l'email con
+     la motivazione. Qui si manda la richiesta e si riporta l'esito com'è —
+     "eliminato ma l'email non è partita" è un risultato diverso da
+     "eliminato", e va detto. */
+  function eliminaUtente(userId, motivo) {
+    if (!global.Cloud || !global.Cloud.connesso()) return Promise.reject(new Error('non-autenticato'));
+    return global.Cloud.chiamaFunzione('elimina-utente', { user_id: userId, motivo: motivo });
+  }
+
+  function eliminazioni() {
+    var s = sb();
+    if (!s) return Promise.resolve([]);
+    return s.from('eliminazioni').select('*').order('eseguita_il', { ascending: false }).limit(30)
+      .then(function (r) {
+        if (r.error) throw new Error(r.error.message);
+        return r.data || [];
+      });
+  }
+
   global.Admin = {
     TABELLE: TABELLE,
+    eliminaUtente: eliminaUtente,
+    eliminazioni: eliminazioni,
     stato: function () { return stato; },
     ruoli: ruoli,
     assegna: assegna,

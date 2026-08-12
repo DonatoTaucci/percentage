@@ -100,6 +100,10 @@ il collegamento fra Clerk e Supabase).
 - Per ciascuno: ruoli assegnabili con un tocco, turni modificabili riga per riga, check-in
   eliminabili, impostazioni e timbratura come JSON. L'elenco mostra ruoli e messaggi IA consumati
   nel mese.
+- **Eliminazione di un account** con motivazione obbligatoria: cancella le righe sul server,
+  chiude l'accesso su Clerk e invia alla persona un'email con la motivazione scritta parola
+  per parola. Non si può eliminare sé stessi né un altro amministratore — prima gli si toglie
+  il ruolo. Ogni eliminazione finisce in un registro con data, motivazione ed esito dell'invio.
 - L'autorizzazione è nelle policy per riga del database, non nel browser: nascondere una
   scheda non impedisce di chiamare l'API, quindi il controllo che conta è sul server.
 - Gli amministratori si aggiungono solo dal pannello Supabase: dall'applicazione nessuno
@@ -243,7 +247,7 @@ lavoro — impiego che ricadrebbe fra i sistemi ad alto rischio dell'AI Act.
 ## Struttura
 
 ```
-supabase/functions/     benessere-ia: la conversazione lato server (Deno)
+supabase/functions/     benessere-ia (conversazione) ed elimina-utente (chiusura account)
 mobile/                 app nativa Expo (React Native + TypeScript)
   app/                  schermate: accesso, Oggi, Turni, Statistiche, Benessere, Impostazioni
   src/core/             logica pura: calcoli, timbratura, decisioni GPS, motore benessere
@@ -273,6 +277,7 @@ manifest.webmanifest    installazione come app
 tests/calcoli.test.js   test dei calcoli e del motore benessere
 tests/timbratura.test.js test della timbratura e della logica GPS
 tests/privacy.test.js   test dei consensi e della trasparenza sull'IA
+tests/eliminazione.test.js test dell'eliminazione di un account
 ```
 
 Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
@@ -280,12 +285,13 @@ Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
 ## Test
 
 ```bash
-# sito (65 test in un browser headless)
+# sito (74 test in un browser headless)
 python3 -m http.server 8765 &
 npx playwright install chromium     # solo la prima volta
 node tests/calcoli.test.js
 node tests/timbratura.test.js
 node tests/privacy.test.js
+node tests/eliminazione.test.js
 
 # app (45 test della logica pura, senza emulatore)
 cd mobile && npm test

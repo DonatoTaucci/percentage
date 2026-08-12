@@ -309,7 +309,25 @@ await page.evaluate(() => {
   // con dati, senza dati, e nello stato "non sei amministratore"
   b.innerHTML = window.UI.amministrazione(c);
   window.__raccogli(b);
-  b.innerHTML = window.UI.amministrazione({ adminUtenti: [], adminDati: null, adminRuoli: [] });
+  b.innerHTML = window.UI.amministrazione({ adminUtenti: [], adminDati: null, adminRuoli: [], adminEliminazioni: [] });
+  window.__raccogli(b);
+  // il registro delle eliminazioni, pieno
+  b.innerHTML = window.UI.amministrazione(Object.assign({}, c, {
+    adminEliminazioni: [
+      { id: 1, user_id: 'user_x', email: 'tizio@example.com', motivo: 'Uso contrario alle condizioni.', eseguita_il: new Date().toISOString(), email_inviata: true },
+      { id: 2, user_id: 'user_y', email: '', motivo: 'Richiesta della persona interessata.', eseguita_il: new Date().toISOString(), email_inviata: false },
+    ],
+  }));
+  window.__raccogli(b);
+  // il modulo di eliminazione, e i tre stati della scheda ruoli
+  const m = document.getElementById('modal-body');
+  m.innerHTML = window.UI.formEliminaUtente({ user_id: 'user_x', email: 'tizio@example.com' });
+  window.__raccogli(m);
+  b.innerHTML = window.UI.amministrazione(Object.assign({}, c, {
+    adminDati: Object.assign({}, c.adminDati, { userId: 'user_demo' }),
+    adminUtenti: [Object.assign({}, c.adminUtenti[0], { ruoli: ['admin'] })],
+  }));
+  window.__raccogli(b);
   window.__raccogli(b);
   b.innerHTML = window.UI.amministrazione({ adminUtenti: null, adminDati: null, adminErrore: 'Servizio di accesso non raggiungibile. Controlla la connessione e riprova.' });
   window.__raccogli(b);

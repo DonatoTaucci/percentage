@@ -1162,6 +1162,87 @@
         '<td>' + (r.amministratore ? esc(T('sì')) : '—') + '</td></tr>';
     });
     html += '</tbody></table></div>';
+
+    // La chiusura di un account sta qui, sotto i ruoli, e non fra i pulsanti
+    // di riga: è l'azione più grave della pagina e non deve capitare accanto
+    // a "elimina questo turno".
+    var mio = global.Cloud && global.Cloud.stato().utente && global.Cloud.stato().utente.id === userId;
+    var amministratore = attuali.some(function (c) {
+      var def = (catalogo || []).filter(function (r) { return r.codice === c; })[0];
+      return def && def.amministratore;
+    });
+    html += '<div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">';
+    if (mio) {
+      html += '<p class="small muted" style="margin:0">Questo sei tu: il tuo account si chiude dalle impostazioni, non da qui.</p>';
+    } else if (amministratore) {
+      html += '<p class="small muted" style="margin:0">È un amministratore. Per eliminarlo togli prima il ruolo: un passaggio in più, di proposito.</p>';
+    } else {
+      html += '<p class="small muted" style="margin:0 0 10px;max-width:64ch">Elimina l\'account, i suoi dati sul server e l\'accesso. La persona riceve un\'email con la motivazione che scrivi. Non è reversibile.</p>';
+      html += '<button class="btn sm danger" data-action="admin-elimina-utente" data-utente="' + esc(userId) + '">Elimina questo account</button>';
+    }
+    html += '</div>';
+
+    html += '</div>';
+    return html;
+  }
+
+  /* Modulo di eliminazione. La motivazione è obbligatoria perché finisce in
+     due posti che contano: l'email alla persona e il registro. Un campo
+     facoltativo sarebbe rimasto vuoto proprio nei casi controversi. */
+  function formEliminaUtente(u) {
+    var html = '';
+    html += '<input type="hidden" name="modulo" value="elimina-utente">';
+    html += '<input type="hidden" name="user_id" value="' + esc(u.user_id) + '">';
+    html += '<h3 style="margin:0">Elimina l\'account</h3>';
+    html += '<p class="small" style="margin:0" data-no-i18n>' + esc(u.email || u.user_id) + '</p>';
+
+    html += '<div class="note" style="border-color:color-mix(in srgb, var(--bad) 35%, transparent)">';
+    html += '<p style="margin:0 0 8px">Vengono eliminati dal server i suoi turni, i check-in, le impostazioni, i ruoli e l\'anagrafica, e viene chiuso l\'accesso.</p>';
+    html += '<p style="margin:0 0 8px">Quello che ha salvato sul proprio dispositivo resta lì: non possiamo cancellarlo a distanza, e l\'email glielo dice.</p>';
+    html += '<p style="margin:0">La motivazione che scrivi qui sotto viene inviata a quella persona parola per parola. Scrivila come se dovessi rileggerla davanti a lei.</p>';
+    html += '</div>';
+
+    html += '<label class="field">Motivazione (obbligatoria, almeno 10 caratteri)' +
+      '<textarea name="motivo" rows="4" maxlength="1000" required placeholder="Es. Uso del servizio in violazione delle condizioni, segnalato il 3 e il 17 agosto."></textarea></label>';
+    html += '<p class="tiny muted" style="margin:0" id="motivo-conteggio"></p>';
+
+    html += '<div class="row" style="gap:8px;justify-content:flex-end;margin-top:6px">';
+    html += '<button type="button" class="btn ghost" data-action="close-modal">Annulla</button>';
+    html += '<button type="submit" class="btn danger">Elimina e invia l\'email</button>';
+    html += '</div>';
+    return html;
+  }
+
+  /* Registro delle eliminazioni: chi, quando, perché, e se l'email è partita. */
+  function cardEliminazioni(ctx) {
+    var righe = ctx.adminEliminazioni;
+    var html = '<div class="card" style="margin-top:14px"><div class="row-between">' +
+      '<div class="card-title" style="margin:0">Account eliminati</div>' +
+      '<button class="btn sm" data-action="admin-registro">' + esc(T('Ricarica')) + '</button></div>';
+    if (!righe) {
+      html += '<p class="muted small" style="margin:12px 0 0">' + esc(T('Caricamento…')) + '</p></div>';
+      return html;
+    }
+    if (!righe.length) {
+      html += '<p class="muted small" style="margin:12px 0 0">Nessun account eliminato finora.</p></div>';
+      return html;
+    }
+    html += '<div class="table-wrap" style="margin-top:12px"><table><thead><tr>' +
+      '<th>' + esc(T('Quando')) + '</th><th>' + esc(T('Utente')) + '</th>' +
+      '<th>' + esc(T('Motivazione')) + '</th><th>' + esc(T('Email')) + '</th>' +
+      '</tr></thead><tbody>';
+    righe.forEach(function (r) {
+      html += '<tr>' +
+        '<td class="tiny muted" data-no-i18n>' + esc(new Date(r.eseguita_il).toLocaleString(I18n.lingua())) + '</td>' +
+        '<td data-no-i18n>' + esc(r.email || r.user_id) + '</td>' +
+        '<td class="small" data-no-i18n style="max-width:38ch">' + esc(r.motivo) + '</td>' +
+        '<td>' + (r.email_inviata
+            ? '<span class="badge ok">' + esc(T('inviata')) + '</span>'
+            : '<span class="badge warn">' + esc(T('non inviata')) + '</span>') + '</td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '<p class="tiny muted" style="margin:12px 0 0">Il registro conserva indirizzo e motivazione anche dopo la cancellazione: serve a rendere conto della decisione e a rispondere se viene contestata. Lo vedono solo gli amministratori.</p>';
     html += '</div>';
     return html;
   }
@@ -1227,6 +1308,8 @@
         '</p>';
     }
     html += '</div>';
+
+    html += cardEliminazioni(ctx);
 
     /* dettaglio di un utente */
     var d = ctx.adminDati;
@@ -1552,6 +1635,7 @@
     benessere: benessere,
     impostazioni: impostazioni,
     shiftForm: shiftForm,
+    formEliminaUtente: formEliminaUtente,
     shiftRow: shiftRow
   };
 })(window);

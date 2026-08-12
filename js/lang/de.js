@@ -583,3 +583,34 @@ Object.assign(window.I18N.de, {
 Object.assign(window.I18N.de, {
   "Posso ragionare sui tuoi dati: ore, straordinari, giorni consecutivi e ultimo check-in. Chiedimi qualcosa, oppure usa il pulsante qui sotto per una lettura completa del periodo.": "Ich kann über deine Daten nachdenken: Stunden, Überstunden, aufeinanderfolgende Tage und den letzten Check-in. Frag mich etwas, oder nutze die Schaltfläche unten für eine vollständige Lesart des Zeitraums."
 });
+
+/* Eliminazione di un account dalla scheda di amministrazione. */
+Object.assign(window.I18N.de, {
+  "Account eliminati": "Gelöschte Konten",
+  "Account eliminato, ma l'email non è partita ({nota}). Avvisa la persona a mano.": "Konto gelöscht, aber die E-Mail ging nicht raus ({nota}). Benachrichtige die Person selbst.",
+  "Account eliminato. Email inviata a {email}.": "Konto gelöscht. E-Mail an {email} gesendet.",
+  "È un amministratore: togli prima il ruolo.": "Das ist ein Administrator: Nimm zuerst die Rolle weg.",
+  "Elimina e invia l'email": "Löschen und E-Mail senden",
+  "Elimina l'account": "Konto löschen",
+  "Elimina l'account, i suoi dati sul server e l'accesso. La persona riceve un'email con la motivazione che scrivi. Non è reversibile.": "Löscht das Konto, seine Daten auf dem Server und den Zugang. Die Person erhält eine E-Mail mit der von dir geschriebenen Begründung. Nicht rückgängig zu machen.",
+  "Elimina questo account": "Dieses Konto löschen",
+  "Eliminare definitivamente {utente}? Riceverà un'email con la motivazione.": "{utente} endgültig löschen? Die Person erhält eine E-Mail mit der Begründung.",
+  "Eliminazione in corso…": "Wird gelöscht…",
+  "Eliminazione non riuscita: {errore}": "Löschen fehlgeschlagen: {errore}",
+  "Email": "E-Mail",
+  "Il registro conserva indirizzo e motivazione anche dopo la cancellazione: serve a rendere conto della decisione e a rispondere se viene contestata. Lo vedono solo gli amministratori.": "Das Verzeichnis bewahrt Adresse und Begründung auch nach der Löschung: Es dient dazu, die Entscheidung zu belegen und zu antworten, wenn sie angefochten wird. Nur Administratoren sehen es.",
+  "Il tuo account si chiude dalle impostazioni, non da qui.": "Dein eigenes Konto schließt du in den Einstellungen, nicht hier.",
+  "inviata": "gesendet",
+  "La motivazione che scrivi qui sotto viene inviata a quella persona parola per parola. Scrivila come se dovessi rileggerla davanti a lei.": "Die Begründung, die du unten schreibst, wird der Person Wort für Wort zugesandt. Schreib sie so, als müsstest du sie ihr vorlesen.",
+  "La motivazione è troppo corta.": "Die Begründung ist zu kurz.",
+  "Motivazione": "Begründung",
+  "Motivazione (obbligatoria, almeno {0} caratteri)": "Begründung (erforderlich, mindestens {0} Zeichen)",
+  "Nessun account eliminato finora.": "Bisher kein Konto gelöscht.",
+  "Non hai il permesso di eliminare account.": "Du hast keine Berechtigung, Konten zu löschen.",
+  "non inviata": "nicht gesendet",
+  "Quando": "Wann",
+  "Quello che ha salvato sul proprio dispositivo resta lì: non possiamo cancellarlo a distanza, e l'email glielo dice.": "Was die Person auf ihrem eigenen Gerät gespeichert hat, bleibt dort: Wir können es nicht aus der Ferne löschen, und die E-Mail sagt das auch.",
+  "Scrivi una motivazione di almeno 10 caratteri: viene inviata alla persona.": "Schreib eine Begründung von mindestens 10 Zeichen: Sie wird der Person zugesandt.",
+  "Un caso a parte: se un amministratore chiude un account per un uso contrario alle condizioni, del passaggio resta un registro con l'indirizzo email, la motivazione e la data. Serve a rendere conto della decisione e a poter rispondere se viene contestata, e lo vedono solo gli amministratori. La motivazione viene comunicata per email alla persona interessata nel momento in cui la chiusura avviene.": "Ein Sonderfall: Schließt ein Administrator ein Konto wegen einer Nutzung entgegen den Bedingungen, bleibt darüber ein Eintrag mit E-Mail-Adresse, Begründung und Datum. Er dient dazu, die Entscheidung zu belegen und antworten zu können, falls sie angefochten wird, und nur Administratoren sehen ihn. Die Begründung wird der betroffenen Person per E-Mail mitgeteilt, sobald die Schließung erfolgt.",
+  "Vengono eliminati dal server i suoi turni, i check-in, le impostazioni, i ruoli e l'anagrafica, e viene chiuso l'accesso.": "Schichten, Check-ins, Einstellungen, Rollen und Stammdaten werden vom Server gelöscht, und der Zugang wird geschlossen."
+});

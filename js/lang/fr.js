@@ -583,3 +583,34 @@ Object.assign(window.I18N.fr, {
 Object.assign(window.I18N.fr, {
   "Posso ragionare sui tuoi dati: ore, straordinari, giorni consecutivi e ultimo check-in. Chiedimi qualcosa, oppure usa il pulsante qui sotto per una lettura completa del periodo.": "Je peux raisonner sur tes données : heures, heures supplémentaires, jours consécutifs et dernier check-in. Demande-moi quelque chose, ou utilise le bouton ci-dessous pour une lecture complète de la période."
 });
+
+/* Eliminazione di un account dalla scheda di amministrazione. */
+Object.assign(window.I18N.fr, {
+  "Account eliminati": "Comptes supprimés",
+  "Account eliminato, ma l'email non è partita ({nota}). Avvisa la persona a mano.": "Compte supprimé, mais l'e-mail n'est pas parti ({nota}). Préviens la personne toi-même.",
+  "Account eliminato. Email inviata a {email}.": "Compte supprimé. E-mail envoyé à {email}.",
+  "È un amministratore: togli prima il ruolo.": "C'est un administrateur : retire d'abord le rôle.",
+  "Elimina e invia l'email": "Supprimer et envoyer l'e-mail",
+  "Elimina l'account": "Supprimer le compte",
+  "Elimina l'account, i suoi dati sul server e l'accesso. La persona riceve un'email con la motivazione che scrivi. Non è reversibile.": "Supprime le compte, ses données sur le serveur et la connexion. La personne reçoit un e-mail avec le motif que tu écris. C'est irréversible.",
+  "Elimina questo account": "Supprimer ce compte",
+  "Eliminare definitivamente {utente}? Riceverà un'email con la motivazione.": "Supprimer définitivement {utente} ? La personne recevra un e-mail avec le motif.",
+  "Eliminazione in corso…": "Suppression en cours…",
+  "Eliminazione non riuscita: {errore}": "Échec de la suppression : {errore}",
+  "Email": "E-mail",
+  "Il registro conserva indirizzo e motivazione anche dopo la cancellazione: serve a rendere conto della decisione e a rispondere se viene contestata. Lo vedono solo gli amministratori.": "Le journal conserve l'adresse et le motif même après la suppression : il sert à rendre compte de la décision et à répondre si elle est contestée. Seuls les administrateurs le voient.",
+  "Il tuo account si chiude dalle impostazioni, non da qui.": "Ton propre compte se ferme depuis les réglages, pas d'ici.",
+  "inviata": "envoyé",
+  "La motivazione che scrivi qui sotto viene inviata a quella persona parola per parola. Scrivila come se dovessi rileggerla davanti a lei.": "Le motif que tu écris ci-dessous est envoyé à cette personne mot pour mot. Écris-le comme si tu devais le relire devant elle.",
+  "La motivazione è troppo corta.": "Le motif est trop court.",
+  "Motivazione": "Motif",
+  "Motivazione (obbligatoria, almeno {0} caratteri)": "Motif (obligatoire, au moins {0} caractères)",
+  "Nessun account eliminato finora.": "Aucun compte supprimé jusqu'ici.",
+  "Non hai il permesso di eliminare account.": "Tu n'as pas la permission de supprimer des comptes.",
+  "non inviata": "non envoyé",
+  "Quando": "Quand",
+  "Quello che ha salvato sul proprio dispositivo resta lì: non possiamo cancellarlo a distanza, e l'email glielo dice.": "Ce qu'elle a enregistré sur son propre appareil y reste : nous ne pouvons pas l'effacer à distance, et l'e-mail le lui dit.",
+  "Scrivi una motivazione di almeno 10 caratteri: viene inviata alla persona.": "Écris un motif d'au moins 10 caractères : il est envoyé à la personne.",
+  "Un caso a parte: se un amministratore chiude un account per un uso contrario alle condizioni, del passaggio resta un registro con l'indirizzo email, la motivazione e la data. Serve a rendere conto della decisione e a poter rispondere se viene contestata, e lo vedono solo gli amministratori. La motivazione viene comunicata per email alla persona interessata nel momento in cui la chiusura avviene.": "Un cas à part : si un administrateur ferme un compte pour un usage contraire aux conditions, il en reste un journal avec l'adresse e-mail, le motif et la date. Il sert à rendre compte de la décision et à pouvoir répondre si elle est contestée, et seuls les administrateurs le voient. Le motif est communiqué par e-mail à la personne concernée au moment où la fermeture a lieu.",
+  "Vengono eliminati dal server i suoi turni, i check-in, le impostazioni, i ruoli e l'anagrafica, e viene chiuso l'accesso.": "Ses services, check-ins, réglages, rôles et fiche sont supprimés du serveur, et la connexion est fermée."
+});

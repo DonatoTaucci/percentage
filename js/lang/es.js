@@ -587,3 +587,34 @@ Object.assign(window.I18N.es, {
 Object.assign(window.I18N.es, {
   "Posso ragionare sui tuoi dati: ore, straordinari, giorni consecutivi e ultimo check-in. Chiedimi qualcosa, oppure usa il pulsante qui sotto per una lettura completa del periodo.": "Puedo razonar sobre tus datos: horas, horas extra, días consecutivos y el último check-in. Pregúntame algo, o usa el botón de abajo para una lectura completa del periodo."
 });
+
+/* Eliminazione di un account dalla scheda di amministrazione. */
+Object.assign(window.I18N.es, {
+  "Account eliminati": "Cuentas eliminadas",
+  "Account eliminato, ma l'email non è partita ({nota}). Avvisa la persona a mano.": "Cuenta eliminada, pero el correo no ha salido ({nota}). Avisa a la persona a mano.",
+  "Account eliminato. Email inviata a {email}.": "Cuenta eliminada. Correo enviado a {email}.",
+  "È un amministratore: togli prima il ruolo.": "Es un administrador: quita antes el rol.",
+  "Elimina e invia l'email": "Eliminar y enviar el correo",
+  "Elimina l'account": "Eliminar la cuenta",
+  "Elimina l'account, i suoi dati sul server e l'accesso. La persona riceve un'email con la motivazione che scrivi. Non è reversibile.": "Elimina la cuenta, sus datos en el servidor y el acceso. La persona recibe un correo con el motivo que escribas. No se puede deshacer.",
+  "Elimina questo account": "Eliminar esta cuenta",
+  "Eliminare definitivamente {utente}? Riceverà un'email con la motivazione.": "¿Eliminar definitivamente a {utente}? Recibirá un correo con el motivo.",
+  "Eliminazione in corso…": "Eliminando…",
+  "Eliminazione non riuscita: {errore}": "No se pudo eliminar: {errore}",
+  "Email": "Correo",
+  "Il registro conserva indirizzo e motivazione anche dopo la cancellazione: serve a rendere conto della decisione e a rispondere se viene contestata. Lo vedono solo gli amministratori.": "El registro conserva la dirección y el motivo incluso después de la eliminación: sirve para dar cuenta de la decisión y responder si se impugna. Solo lo ven los administradores.",
+  "Il tuo account si chiude dalle impostazioni, non da qui.": "Tu cuenta se cierra desde los ajustes, no desde aquí.",
+  "inviata": "enviado",
+  "La motivazione che scrivi qui sotto viene inviata a quella persona parola per parola. Scrivila come se dovessi rileggerla davanti a lei.": "El motivo que escribas abajo se envía a esa persona palabra por palabra. Escríbelo como si tuvieras que releerlo delante de ella.",
+  "La motivazione è troppo corta.": "El motivo es demasiado corto.",
+  "Motivazione": "Motivo",
+  "Motivazione (obbligatoria, almeno {0} caratteri)": "Motivo (obligatorio, al menos {0} caracteres)",
+  "Nessun account eliminato finora.": "Ninguna cuenta eliminada hasta ahora.",
+  "Non hai il permesso di eliminare account.": "No tienes permiso para eliminar cuentas.",
+  "non inviata": "no enviado",
+  "Quando": "Cuándo",
+  "Quello che ha salvato sul proprio dispositivo resta lì: non possiamo cancellarlo a distanza, e l'email glielo dice.": "Lo que haya guardado en su propio dispositivo se queda allí: no podemos borrarlo a distancia, y el correo se lo dice.",
+  "Scrivi una motivazione di almeno 10 caratteri: viene inviata alla persona.": "Escribe un motivo de al menos 10 caracteres: se envía a la persona.",
+  "Un caso a parte: se un amministratore chiude un account per un uso contrario alle condizioni, del passaggio resta un registro con l'indirizzo email, la motivazione e la data. Serve a rendere conto della decisione e a poter rispondere se viene contestata, e lo vedono solo gli amministratori. La motivazione viene comunicata per email alla persona interessata nel momento in cui la chiusura avviene.": "Un caso aparte: si un administrador cierra una cuenta por un uso contrario a las condiciones, queda un registro con la dirección de correo, el motivo y la fecha. Sirve para dar cuenta de la decisión y poder responder si se impugna, y solo lo ven los administradores. El motivo se comunica por correo a la persona afectada en el momento en que se produce el cierre.",
+  "Vengono eliminati dal server i suoi turni, i check-in, le impostazioni, i ruoli e l'anagrafica, e viene chiuso l'accesso.": "Se eliminan del servidor sus turnos, check-ins, ajustes, roles y ficha, y se cierra el acceso."
+});
