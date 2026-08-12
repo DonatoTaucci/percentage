@@ -130,6 +130,33 @@
     return html;
   }
 
+  /* Contenitore del componente di accesso di Clerk.
+
+     Il riquadro di Clerk ha misure proprie e va soltanto centrato: qualsiasi
+     tentativo di vestirlo si trasformerebbe in una rincorsa a ogni loro
+     rilascio. Qui intorno ci mettiamo solo ciò che è nostro — il marchio, la
+     lingua, la via d'uscita — e il link all'informativa, perché la decisione
+     di creare un account si prende sapendo che fine fanno i propri dati. */
+  function pannelloAccesso(stato) {
+    var html = '<div class="landing"><div class="landing-top">';
+    html += '<div class="brand"><span class="brand-mark">%</span><div>' +
+      '<h1>Work Balance</h1><p>' + esc(T('Turni, ore e benessere')) + '</p></div></div>';
+    html += '<div class="row" style="gap:8px">' + selettoreLingua('sel-lingua-accesso') + '</div>';
+    html += '</div>';
+
+    html += '<div class="row" style="gap:8px;margin-bottom:18px">' +
+      '<button class="btn sm ghost" data-action="chiudi-accesso">' + esc(T('Torna indietro')) + '</button>' +
+      '<button class="btn sm ghost" data-action="doc" data-doc="privacy">' + esc(T('Informativa privacy')) + '</button>' +
+      '</div>';
+
+    html += '<div class="accesso"><div id="clerk-accesso"></div>';
+    if (!stato || !stato.pronto) {
+      html += '<p class="small muted" style="text-align:center">' + esc(T('Caricamento…')) + '</p>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
   /* I due documenti, con la stessa impaginazione dentro e fuori dall'app. */
   function documenti(ctx, daLanding) {
     var quale = (ctx && ctx.doc) === 'ia' ? 'ia' : 'privacy';
@@ -1625,6 +1652,7 @@
     esc: esc,
     amministrazione: amministrazione,
     landing: landing,
+    pannelloAccesso: pannelloAccesso,
     documenti: documenti,
     selettoreLingua: selettoreLingua,
     fmtClock: fmtClock,

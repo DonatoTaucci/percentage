@@ -77,25 +77,65 @@
     };
   }
 
+  /* Il frammento dell'indirizzo appartiene al componente di Clerk mentre è
+     montato: l'applicazione non lo usa per niente. Ripulirlo quando si esce
+     evita che un passaggio interrotto ("#/factor-one") riapra al prossimo
+     avvio una schermata a metà. */
+  function pulisciHash() {
+    if (!global.location.hash) return;
+    try {
+      history.replaceState(null, '', global.location.pathname + global.location.search);
+    } catch (e) {
+      global.location.hash = '';
+    }
+  }
+
+  function chiudiAccesso() {
+    if (ctx.accessoMontato && global.Cloud && global.Cloud.smontaAccesso) {
+      global.Cloud.smontaAccesso(document.getElementById('clerk-accesso'));
+    }
+    ctx.accesso = null;
+    ctx.accessoMontato = false;
+    pulisciHash();
+  }
+
   function renderGate() {
     var landing = document.getElementById('landing');
     var app = document.getElementById('app');
     var s = statoAccesso();
 
     if (s.entra) {
+      chiudiAccesso();
       landing.classList.add('hidden');
       landing.innerHTML = '';
       app.classList.remove('hidden');
       render();
-    } else {
-      app.classList.add('hidden');
-      landing.classList.remove('hidden');
-      // L'informativa si legge anche da qui: chi deve decidere se registrarsi
-      // ha il diritto di sapere prima che cosa succede ai suoi dati.
-      landing.innerHTML = ctx.docLanding ? UI.documenti(ctx, true) : UI.landing(s);
-      I18n.traduciDOM(landing);
+      return true;
     }
-    return s.entra;
+
+    app.classList.add('hidden');
+    landing.classList.remove('hidden');
+
+    /* Pannello di accesso. Una volta montato non si ridisegna: il componente
+       è un nodo vivo di Clerk, e riscrivere innerHTML a ogni notifica lo
+       butterebbe via nel mezzo di una verifica via email. */
+    if (ctx.accesso) {
+      if (!ctx.accessoMontato) {
+        landing.innerHTML = UI.pannelloAccesso(s);
+        I18n.traduciDOM(landing);
+        if (global.Cloud && global.Cloud.montaAccesso) {
+          ctx.accessoMontato = global.Cloud.montaAccesso(
+            document.getElementById('clerk-accesso'), ctx.accesso === 'registrati');
+        }
+      }
+      return false;
+    }
+
+    // L'informativa si legge anche da qui: chi deve decidere se registrarsi
+    // ha il diritto di sapere prima che cosa succede ai suoi dati.
+    landing.innerHTML = ctx.docLanding ? UI.documenti(ctx, true) : UI.landing(s);
+    I18n.traduciDOM(landing);
+    return false;
   }
 
   /* ---------------- rendering ---------------- */
@@ -695,6 +735,11 @@
         apriAccesso(true);
         break;
 
+      case 'chiudi-accesso':
+        chiudiAccesso();
+        renderGate();
+        break;
+
       case 'entra-offline':
         ctx.offlineForzato = true;
         renderGate();
@@ -978,19 +1023,24 @@
   /* ---------------- accesso ---------------- */
 
   /* Se le librerie non sono mai arrivate, il primo clic è un nuovo tentativo:
-     aprire la finestra senza Clerk caricato darebbe un riquadro vuoto, che è
-     il modo peggiore di dire "non ha funzionato". */
+     mostrare il pannello senza Clerk caricato darebbe un riquadro vuoto, che
+     è il modo peggiore di dire "non ha funzionato". */
   function apriAccesso(registrazione) {
-    var apri = function () {
-      if (registrazione) global.Cloud.apriRegistrazione();
-      else global.Cloud.apriAccesso();
-    };
-    if (global.Cloud.stato().disponibile) { apri(); return; }
+    ctx.accesso = registrazione ? 'registrati' : 'entra';
+    ctx.accessoMontato = false;
+    ctx.docLanding = false;
+    // Chi era entrato in modalità offline sta chiedendo di accedere davvero:
+    // senza togliere la deroga il pannello verrebbe chiuso dal gate.
+    ctx.offlineForzato = false;
     renderGate();
+    if (global.Cloud.stato().disponibile) return;
     global.Cloud.riprova().then(function (st) {
       renderGate();
-      if (st.disponibile) apri();
-      else toast(T('Servizio di accesso non raggiungibile. Controlla la connessione e riprova.'));
+      if (!st.disponibile) {
+        chiudiAccesso();
+        renderGate();
+        toast(T('Servizio di accesso non raggiungibile. Controlla la connessione e riprova.'));
+      }
     });
   }
 
@@ -1080,10 +1130,19 @@
     I18n.onChange(function (lingua) {
       riempiSelettoreLingua();
       traduciMarcatura();
+      // Cambiare lingua ricrea l'istanza di Clerk: il componente montato
+      // muore con lei. Va smontato prima e rimontato dopo, altrimenti resta
+      // un contenitore vuoto al posto del modulo di accesso.
+      var riapri = ctx.accesso;
+      if (riapri) chiudiAccesso();
       renderGate();
-      // Anche la finestra di accesso di Clerk deve parlare la lingua scelta.
       if (global.Cloud && global.Cloud.cambiaLingua) {
-        global.Cloud.cambiaLingua(lingua).then(renderGate);
+        global.Cloud.cambiaLingua(lingua).then(function () {
+          if (riapri) apriAccesso(riapri === 'registrati');
+          else renderGate();
+        });
+      } else if (riapri) {
+        apriAccesso(riapri === 'registrati');
       }
     });
 
@@ -1116,6 +1175,16 @@
     // Il modulo cloud si carica dopo (è un modulo ES): quando cambia stato,
     // la vista si aggiorna da sola. È anche il momento in cui si scopre se
     // l'utente ha una sessione valida, cioè se mostrare l'app o la landing.
+    /* Ritorno da Google, o schermata dei campi mancanti: il componente ha
+       lasciato il suo passaggio nel frammento dell'indirizzo. Senza riaprire
+       il pannello si vedrebbe la presentazione, con l'iscrizione a metà
+       abbandonata e nessun modo di accorgersene. L'applicazione non usa il
+       frammento per niente, quindi qualunque "#/" è suo. */
+    if (String(global.location.hash || '').indexOf('#/') === 0) {
+      ctx.accesso = 'entra';
+      ctx.accessoMontato = false;
+    }
+
     // La quota arriva dal server: quando arriva, la schermata che la mostra
     // va ridisegnata, altrimenti resta ferma su "Caricamento…".
     AI.onChange(function () {

@@ -114,6 +114,17 @@ for (const stato of [
   }, stato);
 }
 
+/* 1b. Il pannello di accesso: la cornice è nostra (marchio, lingua, via
+       d'uscita), il riquadro dentro lo disegna Clerk e non ci riguarda. */
+for (const pronto of [true, false]) {
+  await page.evaluate((p) => {
+    const l = document.getElementById('landing');
+    l.classList.remove('hidden');
+    l.innerHTML = window.UI.pannelloAccesso({ pronto: p });
+    window.__raccogli(l);
+  }, pronto);
+}
+
 /* 2. L'applicazione completamente vuota: è ciò che vede chi entra la prima
       volta, ed è pieno di frasi che nessun altro stato mostra. */
 await page.evaluate(() => {

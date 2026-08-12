@@ -16,6 +16,12 @@ nell'applicazione. Chi è già entrato una volta su quel dispositivo può proseg
 quando il servizio di accesso non risponde: senza quella deroga un'app installabile e
 utilizzabile offline smetterebbe di funzionare al primo problema di rete.
 
+Il modulo di accesso è **montato dentro il sito** (routing a frammento), non in una finestra
+modale: con la modale il componente non ha un indirizzo proprio, e ogni passaggio che ha
+bisogno di un ritorno — il rimbalzo di OAuth, la schermata dei campi mancanti — atterrava sul
+portale ospitato `<dominio>.accounts.dev`. Si finiva a completare l'iscrizione fuori dal sito,
+su un indirizzo che l'utente non riconosce.
+
 Entrambi i client sono **local-first**: funzionano offline e sincronizzano appena c'è rete.
 
 L'interfaccia del sito è disponibile in **italiano, inglese, spagnolo, francese e tedesco**;
@@ -278,6 +284,7 @@ tests/calcoli.test.js   test dei calcoli e del motore benessere
 tests/timbratura.test.js test della timbratura e della logica GPS
 tests/privacy.test.js   test dei consensi e della trasparenza sull'IA
 tests/eliminazione.test.js test dell'eliminazione di un account
+tests/accesso.test.js   test del modulo di accesso montato in pagina
 ```
 
 Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
@@ -285,13 +292,14 @@ Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
 ## Test
 
 ```bash
-# sito (74 test in un browser headless)
+# sito (82 test in un browser headless)
 python3 -m http.server 8765 &
 npx playwright install chromium     # solo la prima volta
 node tests/calcoli.test.js
 node tests/timbratura.test.js
 node tests/privacy.test.js
 node tests/eliminazione.test.js
+node tests/accesso.test.js
 
 # app (45 test della logica pura, senza emulatore)
 cd mobile && npm test

@@ -199,49 +199,78 @@ async function registraProfilo() {
 
 /* ---------------- accesso ---------------- */
 
-/* Si usa la finestra di Clerk, non un riquadro nostro.
+/* Il componente di accesso vive dentro il sito, non in una finestra modale.
 
-   Montare il componente dentro un <dialog> nostro sembrava più integrato, ma
-   costringeva a inseguire con il CSS una card che ha misure proprie.
+   La modale era comoda e sbagliata. In quella modalità il componente non ha
+   un indirizzo proprio (`routing` è virtuale e non si può cambiare: il tipo
+   della modale è letteralmente SignInProps senza le opzioni di routing), e
+   ogni passaggio che ha bisogno di un ritorno — il rimbalzo di OAuth, la
+   schermata dei campi mancanti — deve atterrare da qualche parte. Non
+   trovando una nostra pagina, Clerk usa la sua: <dominio>.accounts.dev. Da
+   lì la registrazione prosegue fuori dal sito, su un indirizzo che l'utente
+   non riconosce, e che per giunta dichiara "Development mode".
 
-   withSignUp mette accesso e iscrizione nello stesso componente. Senza,
-   chi entra con Google per la prima volta non ha ancora un account: Clerk
-   "trasferisce" il tentativo al flusso di iscrizione, che in mancanza di
-   una pagina nostra è quello ospitato su <dominio>.accounts.dev. È così
-   che ci si ritrova sul portale di Clerk a metà registrazione. È questa
-   opzione a risolvere il problema, ed è sufficiente da sola.
+   Con routing 'hash' il componente si tiene i suoi passaggi nel frammento
+   dell'indirizzo — restiamo sul nostro dominio anche a metà iscrizione, e
+   il ritorno da Google torna qui invece che sul portale.
 
-   oauthFlow resta 'redirect'. Avevo provato 'popup' per non lasciare mai
-   la pagina, ma il popup va aperto sul clic — prima di sapere dove
-   mandarlo — e l'indirizzo gli viene assegnato solo dopo la risposta del
-   server. Quando fra il clic e la risposta si mette in mezzo la verifica
-   antibot di Cloudflare, la finestra resta su about:blank: uno schermo
-   bianco al posto della scelta dell'account Google. Con il reindirizzamento
-   la pagina va su Google e torna indietro — un passaggio in più, ma
-   deterministico, ed è comunque il funzionamento normale di OAuth. */
-async function apriAccesso() {
-  if (!stato.clerk) return;
-  stato.clerk.openSignIn({
-    withSignUp: true,
-    oauthFlow: 'redirect',
-    forceRedirectUrl: window.location.href,
-    signUpForceRedirectUrl: window.location.href
-  });
+   Il prezzo è che ora il frammento è suo: l'applicazione non lo usa per
+   niente, e chi smonta il componente lo ripulisce.
+
+   oauthFlow resta 'redirect'. Il popup era stato provato: va aperto sul clic,
+   prima di sapere dove mandarlo, e con la verifica antibot di Cloudflare in
+   mezzo restava su about:blank — uno schermo bianco al posto della scelta
+   dell'account Google. */
+
+/* L'indirizzo del sito senza frammento: è dove si torna a cose fatte. */
+function paginaBase() {
+  return window.location.origin + window.location.pathname + window.location.search;
 }
 
-/* Ingresso esplicito alla registrazione.
-
-   Con withSignUp la finestra di accesso crea l'account da sola quando
-   l'indirizzo non esiste, ma non lo dice: chi arriva per la prima volta
-   vede solo "Continua" e non ha modo di sapere che è anche il pulsante per
-   iscriversi. Un secondo percorso, dichiarato, toglie il dubbio. */
-async function apriRegistrazione() {
-  if (!stato.clerk) return;
-  stato.clerk.openSignUp({
+function montaAccesso(nodo, registrazione) {
+  if (!stato.clerk || !nodo) return false;
+  const base = paginaBase();
+  const comuni = {
+    routing: 'hash',
     oauthFlow: 'redirect',
-    signInForceRedirectUrl: window.location.href,
-    forceRedirectUrl: window.location.href
-  });
+    signInUrl: base,
+    signUpUrl: base,
+    forceRedirectUrl: base,
+    fallbackRedirectUrl: base
+  };
+  try {
+    if (registrazione) {
+      stato.clerk.mountSignUp(nodo, Object.assign({}, comuni, {
+        signInForceRedirectUrl: base,
+        signInFallbackRedirectUrl: base
+      }));
+    } else {
+      // withSignUp tiene accesso e iscrizione nello stesso componente: senza,
+      // chi entra con Google per la prima volta non ha ancora un account e il
+      // tentativo verrebbe "trasferito" al flusso di iscrizione, cioè altrove.
+      stato.clerk.mountSignIn(nodo, Object.assign({}, comuni, {
+        withSignUp: true,
+        signUpForceRedirectUrl: base,
+        signUpFallbackRedirectUrl: base
+      }));
+    }
+    stato.montato = registrazione ? 'registrazione' : 'accesso';
+    return true;
+  } catch (err) {
+    stato.dettaglio = String(err && err.message || err).slice(0, 200);
+    return false;
+  }
+}
+
+function smontaAccesso(nodo) {
+  if (!stato.clerk || !stato.montato || !nodo) { stato.montato = null; return; }
+  try {
+    if (stato.montato === 'registrazione') stato.clerk.unmountSignUp(nodo);
+    else stato.clerk.unmountSignIn(nodo);
+  } catch (err) {
+    // Smontare un componente già sparito non è un problema da riportare.
+  }
+  stato.montato = null;
 }
 
 /* ---------------- funzioni sul server ---------------- */
@@ -459,8 +488,8 @@ window.Cloud = {
   configurato: () => !!CFG.CLERK_PUBLISHABLE_KEY && !!CFG.SUPABASE_URL,
   connesso: () => !!stato.utente,
   onChange: fn => ascoltatori.push(fn),
-  apriAccesso,
-  apriRegistrazione,
+  montaAccesso,
+  smontaAccesso,
   riprova,
   esci,
   eliminaTutto,

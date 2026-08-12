@@ -103,6 +103,25 @@ di autorizzazione, mentre app e sito continuano a funzionare in locale.
 > cattiva pratica e ruotarlo comporta disservizi. La procedura sopra usa la verifica a
 > chiave asimmetrica, che non richiede segreti condivisi.
 
+### Il modulo di accesso resta sul sito
+
+Il componente di Clerk è montato dentro la pagina con `routing: 'hash'`, non aperto come
+finestra modale. La modale non ha un indirizzo proprio (il suo tipo è letteralmente
+`SignInProps` senza le opzioni di routing), quindi i passaggi che hanno bisogno di un ritorno
+— il rimbalzo di OAuth, la schermata *Fill in missing fields* quando Clerk chiede lo username —
+finivano su `<dominio>.accounts.dev`, cioè fuori dal sito.
+
+Con il frammento il componente si tiene i suoi passaggi in `#/...` e restiamo sul nostro
+dominio anche a metà iscrizione. All'avvio, un frammento che inizia con `#/` viene interpretato
+come iscrizione in corso e riapre il pannello: senza, chi torna da Google vedrebbe la
+presentazione e perderebbe il passaggio. Uscendo, il frammento viene ripulito.
+
+> **In sviluppo resta la scritta "Development mode".** È la chiave `pk_test_…`: le pagine
+> ospitate da Clerk (recupero password, profilo utente) continuano a stare su `accounts.dev`.
+> Per toglierla del tutto serve un'istanza di produzione su Clerk con un dominio tuo, e la
+> `pk_live_…` corrispondente in `js/config.js` — la publishable key è pubblica per costruzione,
+> quindi lì ci sta bene.
+
 ### Amministrazione
 
 `donatotaucci@gmail.com` è registrato come amministratore nella tabella `admins` del

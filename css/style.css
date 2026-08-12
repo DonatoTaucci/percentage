@@ -582,3 +582,14 @@ svg text { fill: var(--txt-dim); font-size: 11px; font-family: inherit; }
   text-transform: uppercase;
   color: var(--txt-dim);
 }
+
+/* Contenitore del componente di accesso: solo centratura.
+   Il riquadro di Clerk porta le sue misure; qui si evita che resti
+   incollato a sinistra, che è com'era quando viveva in una modale. */
+.accesso {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  padding: 10px 0 40px;
+}
+.accesso > div { width: 100%; display: grid; place-items: center; }
