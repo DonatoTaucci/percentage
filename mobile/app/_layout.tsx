@@ -16,24 +16,34 @@ import '../src/services/geofencing';   // registra il task di sistema all'avvio
 /* Porta a "accedi" chi non ha una sessione, e dentro l'app chi ce l'ha. */
 function Rotte() {
   const { isSignedIn, isLoaded } = useAuth();
+  const { username } = useApp();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoaded) return;
     const inAuth = segments[0] === 'accedi';
+    const inNome = segments[0] === 'nome-utente';
     // L'informativa resta aperta anche senza sessione: chi sta decidendo se
     // registrarsi deve poterla leggere prima, non dopo aver dato i suoi dati.
     const pubblica = inAuth || segments[0] === 'privacy';
-    if (!isSignedIn && !pubblica) router.replace('/accedi');
-    else if (isSignedIn && inAuth) router.replace('/');
-  }, [isSignedIn, isLoaded, segments, router]);
+    if (!isSignedIn && !pubblica) { router.replace('/accedi'); return; }
+    if (isSignedIn && inAuth) { router.replace('/'); return; }
+    /* Manca il nome utente. Si chiede solo quando lo si sa per certo: null
+       significa che il server non ha ancora risposto, e sbarrare la strada
+       per un'informazione che non abbiamo sarebbe il modo peggiore di
+       gestire una connessione lenta. */
+    if (isSignedIn && username === '' && !inNome && segments[0] !== 'privacy') {
+      router.replace('/nome-utente');
+    }
+  }, [isSignedIn, isLoaded, segments, router, username]);
 
   return (
     <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="accedi" />
       <Stack.Screen name="privacy" />
+      <Stack.Screen name="nome-utente" />
     </Stack>
   );
 }

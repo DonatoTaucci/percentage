@@ -617,3 +617,18 @@ Object.assign(window.I18N.en, {
   "Un caso a parte: se un amministratore chiude un account per un uso contrario alle condizioni, del passaggio resta un registro con l'indirizzo email, la motivazione e la data. Serve a rendere conto della decisione e a poter rispondere se viene contestata, e lo vedono solo gli amministratori. La motivazione viene comunicata per email alla persona interessata nel momento in cui la chiusura avviene.": "One case apart: if an administrator closes an account for use contrary to the terms, a log of it remains with the email address, the reason and the date. It serves to account for the decision and to be able to answer if it is challenged, and only administrators can see it. The reason is communicated by email to the person concerned at the moment the closure happens.",
   "Vengono eliminati dal server i suoi turni, i check-in, le impostazioni, i ruoli e l'anagrafica, e viene chiuso l'accesso.": "Their shifts, check-ins, settings, roles and profile are deleted from the server, and the sign-in is closed."
 });
+
+/* Scelta del nome utente. */
+Object.assign(window.I18N.en, {
+  "Ciao, {nome}.": "Hello, {nome}.",
+  "Continua": "Continue",
+  "Da {0} a {1} caratteri: lettere, cifre, punto, trattino e trattino basso.": "From {0} to {1} characters: letters, digits, dot, hyphen and underscore.",
+  "Il nome utente deve essere lungo da 3 a 20 caratteri.": "The username must be between 3 and 20 characters long.",
+  "Lo faccio dopo": "I'll do it later",
+  "Manca solo questo. È il nome con cui il tuo account viene identificato: puoi cambiarlo quando vuoi dalle impostazioni.": "This is the last thing. It is the name your account is identified by: you can change it whenever you like from the settings.",
+  "Nome utente aggiornato: {nome}.": "Username updated: {nome}.",
+  "Non è stato possibile salvare il nome utente. Riprova fra poco.": "The username could not be saved. Try again shortly.",
+  "Questo nome utente è già di qualcun altro. Provane un altro.": "This username belongs to someone else. Try another one.",
+  "Scegli un nome utente": "Choose a username",
+  "Sono ammessi solo lettere, cifre, punto, trattino e trattino basso.": "Only letters, digits, dot, hyphen and underscore are allowed."
+});

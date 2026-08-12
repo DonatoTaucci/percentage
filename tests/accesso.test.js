@@ -37,8 +37,11 @@ const { chromium } = require('playwright');
     window.__montaggi = [];
     window.__smontaggi = 0;
     window.__utente = null;
+    window.__profilo = null;      // non ancora letto
+    window.__nomi = [];
+    window.__esitoNome = { ok: true, username: 'mario.rossi' };
     window.Cloud = {
-      stato: () => ({ supabase: null, utente: window.__utente, pronto: true, disponibile: true, motivo: 'ok' }),
+      stato: () => ({ supabase: null, utente: window.__utente, pronto: true, disponibile: true, motivo: 'ok', profilo: window.__profilo }),
       configurato: () => true,
       connesso: () => !!window.__utente,
       onChange: () => {},
@@ -48,6 +51,7 @@ const { chromium } = require('playwright');
         return true;
       },
       smontaAccesso: () => { window.__smontaggi++; },
+      impostaUsername: (n) => { window.__nomi.push(n); return Promise.resolve(window.__esitoNome); },
       sincronizza: () => Promise.resolve(null),
     };
     window.App.renderGate();
@@ -129,6 +133,70 @@ const { chromium } = require('playwright');
       app: !document.getElementById('app').classList.contains('hidden'),
     })),
     { smontaggi: 2, hash: '', app: true });
+
+  /* Nome utente mancante: si chiede qui, non sul portale di Clerk.
+
+     È la ragione per cui la registrazione finiva su accounts.dev: quella
+     schermata era la sua. Adesso è nostra, e blocca l'ingresso finché il
+     profilo risulta senza nome. */
+  await page.evaluate(() => { window.__profilo = { username: '' }; window.App.renderGate(); });
+  await page.waitForTimeout(250);
+  ok('senza nome utente si chiede prima di entrare',
+    await page.evaluate(() => ({
+      campo: !!document.getElementById('campo-username'),
+      app: !document.getElementById('app').classList.contains('hidden'),
+    })),
+    { campo: true, app: false });
+
+  // Troppo corto: si ferma qui, senza disturbare il server.
+  await page.evaluate(() => {
+    document.getElementById('campo-username').value = 'ab';
+    document.querySelector('[data-action="salva-username"]').click();
+  });
+  await page.waitForTimeout(300);
+  ok('nome troppo corto: nessuna chiamata, e un errore leggibile',
+    await page.evaluate(() => ({
+      chiamate: window.__nomi.length,
+      errore: /da 3 a 20/.test(document.getElementById('landing').textContent),
+    })),
+    { chiamate: 0, errore: true });
+
+  // Occupato: il messaggio deve dire di provarne un altro.
+  await page.evaluate(() => {
+    window.__esitoNome = { ok: false, motivo: 'occupato' };
+    document.getElementById('campo-username').value = 'mario.rossi';
+    document.querySelector('[data-action="salva-username"]').click();
+  });
+  await page.waitForTimeout(400);
+  ok('nome occupato: lo dice e si resta sulla schermata',
+    await page.evaluate(() => ({
+      chiamate: window.__nomi.length,
+      errore: /già di qualcun altro/.test(document.getElementById('landing').textContent),
+      campo: !!document.getElementById('campo-username'),
+    })),
+    { chiamate: 1, errore: true, campo: true });
+
+  // Valido: si entra.
+  await page.evaluate(() => {
+    window.__esitoNome = { ok: true, username: 'mario.rossi' };
+    window.__profilo = { username: 'mario.rossi' };
+    document.getElementById('campo-username').value = 'mario.rossi';
+    document.querySelector('[data-action="salva-username"]').click();
+  });
+  await page.waitForTimeout(400);
+  ok('nome accettato: si entra nell\'applicazione',
+    await page.evaluate(() => ({
+      inviato: window.__nomi[window.__nomi.length - 1],
+      app: !document.getElementById('app').classList.contains('hidden'),
+    })),
+    { inviato: 'mario.rossi', app: true });
+
+  // Se il profilo non si è potuto leggere non si blocca nessuno: null non è
+  // "non ce l'ha", è "non lo sappiamo".
+  await page.evaluate(() => { window.__profilo = null; window.App.renderGate(); });
+  await page.waitForTimeout(200);
+  ok('profilo non leggibile: si entra lo stesso',
+    await page.evaluate(() => !document.getElementById('app').classList.contains('hidden')), true);
 
   /* Ritorno da OAuth: la pagina si apre con un frammento di Clerk e deve
      riprendere da lì, non mostrare la presentazione come se niente fosse. */

@@ -614,3 +614,18 @@ Object.assign(window.I18N.fr, {
   "Un caso a parte: se un amministratore chiude un account per un uso contrario alle condizioni, del passaggio resta un registro con l'indirizzo email, la motivazione e la data. Serve a rendere conto della decisione e a poter rispondere se viene contestata, e lo vedono solo gli amministratori. La motivazione viene comunicata per email alla persona interessata nel momento in cui la chiusura avviene.": "Un cas à part : si un administrateur ferme un compte pour un usage contraire aux conditions, il en reste un journal avec l'adresse e-mail, le motif et la date. Il sert à rendre compte de la décision et à pouvoir répondre si elle est contestée, et seuls les administrateurs le voient. Le motif est communiqué par e-mail à la personne concernée au moment où la fermeture a lieu.",
   "Vengono eliminati dal server i suoi turni, i check-in, le impostazioni, i ruoli e l'anagrafica, e viene chiuso l'accesso.": "Ses services, check-ins, réglages, rôles et fiche sont supprimés du serveur, et la connexion est fermée."
 });
+
+/* Scelta del nome utente. */
+Object.assign(window.I18N.fr, {
+  "Ciao, {nome}.": "Salut, {nome}.",
+  "Continua": "Continuer",
+  "Da {0} a {1} caratteri: lettere, cifre, punto, trattino e trattino basso.": "De {0} à {1} caractères : lettres, chiffres, point, tiret et tiret bas.",
+  "Il nome utente deve essere lungo da 3 a 20 caratteri.": "Le nom d'utilisateur doit compter entre 3 et 20 caractères.",
+  "Lo faccio dopo": "Je le ferai plus tard",
+  "Manca solo questo. È il nome con cui il tuo account viene identificato: puoi cambiarlo quando vuoi dalle impostazioni.": "Il ne manque que ça. C'est le nom qui identifie ton compte : tu peux le changer quand tu veux depuis les réglages.",
+  "Nome utente aggiornato: {nome}.": "Nom d'utilisateur mis à jour : {nome}.",
+  "Non è stato possibile salvare il nome utente. Riprova fra poco.": "Le nom d'utilisateur n'a pas pu être enregistré. Réessaie dans un instant.",
+  "Questo nome utente è già di qualcun altro. Provane un altro.": "Ce nom d'utilisateur appartient à quelqu'un d'autre. Essaies-en un autre.",
+  "Scegli un nome utente": "Choisis un nom d'utilisateur",
+  "Sono ammessi solo lettere, cifre, punto, trattino e trattino basso.": "Seuls les lettres, chiffres, point, tiret et tiret bas sont admis."
+});

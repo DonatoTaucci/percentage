@@ -74,7 +74,8 @@ const stato = {
   motivo: 'avvio',   // avvio | senza-chiave | irraggiungibile | ok
   dettaglio: null,
   sincronizzando: false,
-  ultimaSync: null
+  ultimaSync: null,
+  profilo: null       // riga di `profili`: null = non ancora letta
 };
 
 const ascoltatori = [];
@@ -187,14 +188,47 @@ function riassuntoUtente(u) {
 async function registraProfilo() {
   if (!stato.supabase || !stato.utente) return;
   try {
-    await stato.supabase.from('profili').upsert({
-      user_id: stato.utente.id,
-      username: stato.utente.username || '',
-      ultimo_accesso: new Date().toISOString()
-    }, { onConflict: 'user_id' });
+    const riga = { user_id: stato.utente.id, ultimo_accesso: new Date().toISOString() };
+    // Il nome utente si scrive solo se Clerk ne ha uno: da quando lo
+    // chiediamo noi, la fonte è la tabella. Mandare stringa vuota a ogni
+    // accesso cancellerebbe il nome scelto la volta prima.
+    if (stato.utente.username) riga.username = stato.utente.username;
+    await stato.supabase.from('profili').upsert(riga, { onConflict: 'user_id' });
+    await leggiProfilo();
   } catch (err) {
     // Non è un motivo per impedire l'uso dell'applicazione.
   }
+}
+
+/* Il profilo sul server, che è dove vive il nome utente. */
+async function leggiProfilo() {
+  if (!stato.supabase || !stato.utente) { stato.profilo = null; return null; }
+  try {
+    const { data } = await stato.supabase
+      .from('profili').select('username').eq('user_id', stato.utente.id).maybeSingle();
+    stato.profilo = data || { username: '' };
+  } catch (err) {
+    stato.profilo = null;      // non lo sappiamo: non è come sapere che manca
+  }
+  notifica();
+  return stato.profilo;
+}
+
+/* Scelta del nome utente, dopo l'accesso e a casa nostra.
+
+   Lo chiedeva Clerk durante l'iscrizione, ma quella schermata la serve il suo
+   portale: chi si registrava andava a sceglierlo su <slug>.accounts.dev. Ora
+   la domanda è nostra, la convalida è del database, e la registrazione non ha
+   più passaggi ospitati altrove. */
+async function impostaUsername(nome) {
+  if (!stato.supabase || !stato.utente) return { ok: false, motivo: 'non-autenticato' };
+  const { data, error } = await stato.supabase.rpc('imposta_username', { p_username: nome });
+  if (error) return { ok: false, motivo: 'errore', dettaglio: error.message };
+  if (data && data.ok) {
+    stato.profilo = { username: data.username };
+    notifica();
+  }
+  return data || { ok: false, motivo: 'errore' };
 }
 
 /* ---------------- accesso ---------------- */
@@ -490,6 +524,8 @@ window.Cloud = {
   onChange: fn => ascoltatori.push(fn),
   montaAccesso,
   smontaAccesso,
+  impostaUsername,
+  leggiProfilo,
   riprova,
   esci,
   eliminaTutto,

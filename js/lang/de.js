@@ -614,3 +614,18 @@ Object.assign(window.I18N.de, {
   "Un caso a parte: se un amministratore chiude un account per un uso contrario alle condizioni, del passaggio resta un registro con l'indirizzo email, la motivazione e la data. Serve a rendere conto della decisione e a poter rispondere se viene contestata, e lo vedono solo gli amministratori. La motivazione viene comunicata per email alla persona interessata nel momento in cui la chiusura avviene.": "Ein Sonderfall: Schließt ein Administrator ein Konto wegen einer Nutzung entgegen den Bedingungen, bleibt darüber ein Eintrag mit E-Mail-Adresse, Begründung und Datum. Er dient dazu, die Entscheidung zu belegen und antworten zu können, falls sie angefochten wird, und nur Administratoren sehen ihn. Die Begründung wird der betroffenen Person per E-Mail mitgeteilt, sobald die Schließung erfolgt.",
   "Vengono eliminati dal server i suoi turni, i check-in, le impostazioni, i ruoli e l'anagrafica, e viene chiuso l'accesso.": "Schichten, Check-ins, Einstellungen, Rollen und Stammdaten werden vom Server gelöscht, und der Zugang wird geschlossen."
 });
+
+/* Scelta del nome utente. */
+Object.assign(window.I18N.de, {
+  "Ciao, {nome}.": "Hallo, {nome}.",
+  "Continua": "Weiter",
+  "Da {0} a {1} caratteri: lettere, cifre, punto, trattino e trattino basso.": "Von {0} bis {1} Zeichen: Buchstaben, Ziffern, Punkt, Bindestrich und Unterstrich.",
+  "Il nome utente deve essere lungo da 3 a 20 caratteri.": "Der Benutzername muss zwischen 3 und 20 Zeichen lang sein.",
+  "Lo faccio dopo": "Später",
+  "Manca solo questo. È il nome con cui il tuo account viene identificato: puoi cambiarlo quando vuoi dalle impostazioni.": "Nur noch das. Es ist der Name, unter dem dein Konto erkannt wird: Du kannst ihn jederzeit in den Einstellungen ändern.",
+  "Nome utente aggiornato: {nome}.": "Benutzername aktualisiert: {nome}.",
+  "Non è stato possibile salvare il nome utente. Riprova fra poco.": "Der Benutzername konnte nicht gespeichert werden. Versuch es gleich noch einmal.",
+  "Questo nome utente è già di qualcun altro. Provane un altro.": "Dieser Benutzername gehört schon jemand anderem. Probier einen anderen.",
+  "Scegli un nome utente": "Wähle einen Benutzernamen",
+  "Sono ammessi solo lettere, cifre, punto, trattino e trattino basso.": "Erlaubt sind nur Buchstaben, Ziffern, Punkt, Bindestrich und Unterstrich."
+});

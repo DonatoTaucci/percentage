@@ -90,6 +90,14 @@
     }
   }
 
+  function serveUsername() {
+    if (ctx.usernameRimandato) return false;
+    var cloud = global.Cloud;
+    if (!cloud || !cloud.connesso()) return false;
+    var p = cloud.stato().profilo;
+    return !!p && !p.username;
+  }
+
   function chiudiAccesso() {
     if (ctx.accessoMontato && global.Cloud && global.Cloud.smontaAccesso) {
       global.Cloud.smontaAccesso(document.getElementById('clerk-accesso'));
@@ -106,6 +114,23 @@
 
     if (s.entra) {
       chiudiAccesso();
+
+      /* Manca il nome utente: si chiede prima di entrare.
+
+         Si blocca solo quando lo si sa per certo, cioè quando il profilo è
+         stato letto ed è vuoto. Se il server non ha risposto il profilo è
+         null, e sbarrare la porta per un'informazione che non abbiamo
+         sarebbe il modo peggiore di gestire un problema di rete. */
+      if (serveUsername()) {
+        app.classList.add('hidden');
+        landing.classList.remove('hidden');
+        if (!document.getElementById('campo-username')) {
+          landing.innerHTML = UI.scegliUsername(ctx);
+          I18n.traduciDOM(landing);
+        }
+        return false;
+      }
+
       landing.classList.add('hidden');
       landing.innerHTML = '';
       app.classList.remove('hidden');
@@ -740,6 +765,26 @@
         renderGate();
         break;
 
+      case 'salva-username':
+        salvaUsername();
+        break;
+
+      case 'rimanda-username':
+        ctx.usernameRimandato = true;
+        renderGate();
+        break;
+
+      case 'salva-username-imp': {
+        var campoImp = document.getElementById('campo-username-imp');
+        var nomeImp = campoImp ? campoImp.value.trim() : '';
+        global.Cloud.impostaUsername(nomeImp).then(function (esito) {
+          if (esito && esito.ok) toast(T('Nome utente aggiornato: {nome}.', { nome: esito.username }));
+          else toast(erroreUsername(esito && esito.motivo));
+          render();
+        });
+        break;
+      }
+
       case 'entra-offline':
         ctx.offlineForzato = true;
         renderGate();
@@ -1042,6 +1087,52 @@
         toast(T('Servizio di accesso non raggiungibile. Controlla la connessione e riprova.'));
       }
     });
+  }
+
+  /* Il messaggio dipende dal motivo, e i motivi hanno rimedi diversi: uno si
+     corregge scrivendo meglio, l'altro scegliendo un altro nome. */
+  function erroreUsername(motivo) {
+    if (motivo === 'lunghezza') return T('Il nome utente deve essere lungo da 3 a 20 caratteri.');
+    if (motivo === 'caratteri') return T('Sono ammessi solo lettere, cifre, punto, trattino e trattino basso.');
+    if (motivo === 'occupato') return T('Questo nome utente è già di qualcun altro. Provane un altro.');
+    return T('Non è stato possibile salvare il nome utente. Riprova fra poco.');
+  }
+
+  function salvaUsername() {
+    var campo = document.getElementById('campo-username');
+    var nome = campo ? campo.value.trim() : '';
+    ctx.usernameBozza = nome;
+    ctx.usernameErrore = null;
+
+    if (nome.length < 3) {
+      ctx.usernameErrore = erroreUsername('lunghezza');
+      ridisegnaUsername();
+      return;
+    }
+    if (campo) campo.disabled = true;
+    global.Cloud.impostaUsername(nome).then(function (esito) {
+      if (campo) campo.disabled = false;
+      if (esito && esito.ok) {
+        ctx.usernameErrore = null;
+        ctx.usernameBozza = '';
+        renderGate();
+        toast(T('Ciao, {nome}.', { nome: esito.username }));
+        return;
+      }
+      ctx.usernameErrore = erroreUsername(esito && esito.motivo);
+      ridisegnaUsername();
+    });
+  }
+
+  /* Il pannello non si ridisegna da solo (renderGate lo lascia stare per non
+     perdere quello che si sta scrivendo): quando cambia l'errore va rifatto
+     a mano, tenendo il testo già digitato. */
+  function ridisegnaUsername() {
+    var landing = document.getElementById('landing');
+    landing.innerHTML = UI.scegliUsername(ctx);
+    I18n.traduciDOM(landing);
+    var campo = document.getElementById('campo-username');
+    if (campo) campo.focus();
   }
 
   /* ---------------- lingua e tema ---------------- */

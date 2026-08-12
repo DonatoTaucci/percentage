@@ -157,6 +157,38 @@
     return html;
   }
 
+  /* Scelta del nome utente, a casa nostra.
+
+     Prima la chiedeva Clerk durante l'iscrizione, e quella schermata la serve
+     il suo portale: si finiva a sceglierlo su un indirizzo che non è il
+     nostro. Chiedendolo qui, dopo l'accesso, la registrazione non esce mai
+     dal sito. */
+  function scegliUsername(ctx) {
+    var html = '<div class="landing"><div class="landing-top">';
+    html += '<div class="brand"><span class="brand-mark">%</span><div>' +
+      '<h1>Work Balance</h1><p>' + esc(T('Turni, ore e benessere')) + '</p></div></div>';
+    html += '<div class="row" style="gap:8px">' + selettoreLingua('sel-lingua-username') + '</div>';
+    html += '</div>';
+
+    html += '<div class="accesso"><div class="card" style="max-width:30rem;width:100%">';
+    html += '<div class="card-title">Scegli un nome utente</div>';
+    html += '<p class="small muted" style="margin:0 0 14px">Manca solo questo. È il nome con cui il tuo account viene identificato: puoi cambiarlo quando vuoi dalle impostazioni.</p>';
+    html += '<label class="field">Nome utente<input type="text" id="campo-username" maxlength="20" autocomplete="username" placeholder="mario.rossi" value="' + esc(ctx.usernameBozza || '') + '"></label>';
+    html += '<p class="tiny muted" style="margin:8px 0 0">Da 3 a 20 caratteri: lettere, cifre, punto, trattino e trattino basso.</p>';
+    if (ctx.usernameErrore) {
+      html += '<div class="note" style="margin-top:12px;border-color:color-mix(in srgb, var(--bad) 35%, transparent)">' +
+        esc(ctx.usernameErrore) + '</div>';
+    }
+    html += '<div class="row" style="gap:8px;margin-top:16px">';
+    html += '<button class="btn primary" data-action="salva-username">Continua</button>';
+    // Una via d'uscita c'è: se il server non risponde, restare bloccati fuori
+    // dalla propria applicazione sarebbe peggio di non avere un nome.
+    html += '<button class="btn ghost sm" data-action="rimanda-username">Lo faccio dopo</button>';
+    html += '</div>';
+    html += '</div></div></div>';
+    return html;
+  }
+
   /* I due documenti, con la stessa impaginazione dentro e fuori dall'app. */
   function documenti(ctx, daLanding) {
     var quale = (ctx && ctx.doc) === 'ia' ? 'ia' : 'privacy';
@@ -1093,6 +1125,16 @@
 
       if (st.errore) html += '<div class="note" style="margin-top:12px;border-color:var(--bad)">' + esc(st.errore) + '</div>';
 
+      /* Il nome utente si cambia da qui, perché la schermata che lo chiede al
+         primo accesso promette che si può fare, e una promessa senza il
+         pulsante corrispondente è una bugia. */
+      var nomeAttuale = (st.profilo && st.profilo.username) || '';
+      html += '<div class="row" style="gap:8px;margin-top:14px;align-items:flex-end">';
+      html += '<label class="field" style="flex:1;min-width:180px">Nome utente' +
+        '<input type="text" id="campo-username-imp" maxlength="20" placeholder="mario.rossi" value="' + esc(nomeAttuale) + '"></label>';
+      html += '<button class="btn sm" data-action="salva-username-imp">Salva</button>';
+      html += '</div>';
+
       html += '<p class="tiny muted" style="margin:12px 0 0">Gli stessi dati sono nell\'app per telefono, accedendo con questa email.</p>';
       html += '<button class="btn sm danger" style="margin-top:12px" data-action="cloud-logout">Esci dall\'account</button>';
     }
@@ -1653,6 +1695,7 @@
     amministrazione: amministrazione,
     landing: landing,
     pannelloAccesso: pannelloAccesso,
+    scegliUsername: scegliUsername,
     documenti: documenti,
     selettoreLingua: selettoreLingua,
     fmtClock: fmtClock,

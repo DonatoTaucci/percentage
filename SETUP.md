@@ -116,11 +116,33 @@ dominio anche a metà iscrizione. All'avvio, un frammento che inizia con `#/` vi
 come iscrizione in corso e riapre il pannello: senza, chi torna da Google vedrebbe la
 presentazione e perderebbe il passaggio. Uscendo, il frammento viene ripulito.
 
+### Il nome utente lo chiediamo noi
+
+Su Clerk, in **Configure → User & Authentication → Username**, la voce va lasciata
+**disattivata** (o attiva ma *non* obbligatoria). Se resta obbligatoria, Clerk inserisce la
+schermata *Fill in missing fields* dentro il proprio flusso di iscrizione, ed è quella che
+portava su `accounts.dev`.
+
+Il nome utente viene chiesto dopo l'accesso, da una schermata nostra, sul sito e nell'app, e
+finisce nella colonna `username` di `profili`. È unico senza distinzione fra maiuscole e
+minuscole (indice parziale `profili_username_unico`), e la convalida — lunghezza 3-20,
+lettere, cifre, punto, trattino e trattino basso — sta nella funzione `imposta_username()`,
+non nel modulo: un controllo nel browser dice cosa correggere, non impedisce di scrivere altro.
+
+Chi non lo sceglie subito può rimandare: la domanda torna all'accesso successivo, e il nome si
+cambia comunque da **Impostazioni → Account**.
+
 > **In sviluppo resta la scritta "Development mode".** È la chiave `pk_test_…`: le pagine
 > ospitate da Clerk (recupero password, profilo utente) continuano a stare su `accounts.dev`.
 > Per toglierla del tutto serve un'istanza di produzione su Clerk con un dominio tuo, e la
 > `pk_live_…` corrispondente in `js/config.js` — la publishable key è pubblica per costruzione,
 > quindi lì ci sta bene.
+>
+> Con un'istanza di sviluppo, `<slug>.accounts.dev` **è** l'indirizzo dell'API di Clerk: durante
+> l'accesso con Google il browser ci passa attraverso per forza, perché è lì che torna il
+> rimbalzo OAuth. Non è una fuga di informazioni — quel dominio è già dedotto dalla publishable
+> key, che sta nel sorgente della pagina — ma si vede, e in produzione al suo posto compare
+> `clerk.tuodominio.it`. L'accesso via email e codice non ci passa mai.
 
 ### Amministrazione
 

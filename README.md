@@ -22,6 +22,10 @@ bisogno di un ritorno — il rimbalzo di OAuth, la schermata dei campi mancanti 
 portale ospitato `<dominio>.accounts.dev`. Si finiva a completare l'iscrizione fuori dal sito,
 su un indirizzo che l'utente non riconosce.
 
+Per lo stesso motivo il **nome utente lo chiediamo noi**, dopo l'accesso, da una schermata
+nostra su entrambi i client: era l'ultimo passaggio servito dal portale di Clerk. Vive nella
+tabella `profili`, è unico a prescindere dalle maiuscole, e si cambia da Impostazioni.
+
 Entrambi i client sono **local-first**: funzionano offline e sincronizzano appena c'è rete.
 
 L'interfaccia del sito è disponibile in **italiano, inglese, spagnolo, francese e tedesco**;
@@ -292,7 +296,7 @@ Nessun framework, nessuna build: si modifica un file e si ricarica la pagina.
 ## Test
 
 ```bash
-# sito (82 test in un browser headless)
+# sito (87 test in un browser headless)
 python3 -m http.server 8765 &
 npx playwright install chromium     # solo la prima volta
 node tests/calcoli.test.js

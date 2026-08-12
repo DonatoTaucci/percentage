@@ -14,7 +14,7 @@ import {
   SyncState, EMPTY_SYNC, clearAll,
   markShiftDirty, markShiftDeleted, markCheckinDirty, markCheckinDeleted,
 } from './storage';
-import { syncNow, resetClient, registraProfilo, eliminaTuttoSulServer } from './sync';
+import { syncNow, resetClient, registraProfilo, eliminaTuttoSulServer, leggiUsername, impostaUsername as scriviUsername } from './sync';
 import { SINCRONIZZAZIONE_DISPONIBILE } from '../config';
 import * as Geo from '../services/geofencing';
 
@@ -35,6 +35,9 @@ type Ctx = {
   sincronizza: (silenzioso?: boolean) => Promise<string | null>;
   scollega: () => Promise<void>;
   eliminaTutto: () => Promise<{ righe: boolean; account: boolean; errore: string | null }>;
+  /** null = non ancora letto, '' = da scegliere. */
+  username: string | null;
+  impostaUsername: (nome: string) => Promise<{ ok: boolean; motivo?: string; username?: string }>;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
@@ -52,6 +55,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [sync, setSync] = useState<SyncState>(EMPTY_SYNC);
   const [pronto, setPronto] = useState(false);
   const [sincronizzando, setSincronizzando] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
 
   // Riferimenti sempre aggiornati: servono ai callback asincroni
   // (sincronizzazione, cambio di stato dell'app) per non lavorare su copie vecchie.
@@ -188,6 +192,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
      vale più e le righe resterebbero lì senza nessuno autorizzato a
      toglierle. L'esito è dettagliato apposta: su una cancellazione un
      generico "non riuscito" costringerebbe a fidarsi, e non ci si fida. */
+  /* Il nome utente arriva dal server, quindi all'inizio non si sa: null non
+     è "non ce l'ha", è "non l'abbiamo ancora chiesto". La differenza conta,
+     perché su "non ce l'ha" si sbarra la strada. */
+  useEffect(() => {
+    if (!isSignedIn || !userId) { setUsername(null); return; }
+    let vivo = true;
+    leggiUsername(getToken, userId).then((u) => { if (vivo) setUsername(u); });
+    return () => { vivo = false; };
+  }, [isSignedIn, userId, getToken]);
+
+  const impostaUsername = useCallback(async (nome: string) => {
+    const esito = await scriviUsername(getToken, nome);
+    if (esito.ok && esito.username) setUsername(esito.username);
+    return esito;
+  }, [getToken]);
+
   const eliminaTutto = useCallback(async () => {
     const esito = { righe: false, account: false, errore: null as string | null };
 
@@ -213,9 +233,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     aggiornaImpostazioni, salvaTurno, eliminaTurno,
     entrata, pausa, uscita, annullaTimbratura,
     aggiungiCheckin, eliminaCheckin, sincronizza, scollega, eliminaTutto,
+    username, impostaUsername,
   }), [data, pronto, sync, sincronizzando, aggiornaImpostazioni, salvaTurno, eliminaTurno,
        entrata, pausa, uscita, annullaTimbratura, aggiungiCheckin, eliminaCheckin, sincronizza,
-       scollega, eliminaTutto]);
+       scollega, eliminaTutto, username, impostaUsername]);
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }

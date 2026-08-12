@@ -125,6 +125,16 @@ for (const pronto of [true, false]) {
   }, pronto);
 }
 
+/* 1c. La scelta del nome utente: pulita e con un errore in vista. */
+for (const c of [{}, { usernameBozza: 'mario', usernameErrore: 'Questo nome utente è già di qualcun altro. Provane un altro.' }]) {
+  await page.evaluate((x) => {
+    const l = document.getElementById('landing');
+    l.classList.remove('hidden');
+    l.innerHTML = window.UI.scegliUsername(x);
+    window.__raccogli(l);
+  }, c);
+}
+
 /* 2. L'applicazione completamente vuota: è ciò che vede chi entra la prima
       volta, ed è pieno di frasi che nessun altro stato mostra. */
 await page.evaluate(() => {
@@ -375,6 +385,7 @@ const ESCLUDI = [
   /^https?:/,
   /^sk-ant-/,                            // segnaposto della chiave API
   /^Work Balance$/,                        // il nome del prodotto non si traduce
+  /^mario\.rossi$/,                       // esempio di nome utente, non una frase
 ];
 
 const chiavi = [...new Set([...(await page.evaluate(() => [...window.__chiavi])), ...daSorgente])];

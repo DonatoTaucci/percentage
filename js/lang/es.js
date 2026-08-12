@@ -618,3 +618,18 @@ Object.assign(window.I18N.es, {
   "Un caso a parte: se un amministratore chiude un account per un uso contrario alle condizioni, del passaggio resta un registro con l'indirizzo email, la motivazione e la data. Serve a rendere conto della decisione e a poter rispondere se viene contestata, e lo vedono solo gli amministratori. La motivazione viene comunicata per email alla persona interessata nel momento in cui la chiusura avviene.": "Un caso aparte: si un administrador cierra una cuenta por un uso contrario a las condiciones, queda un registro con la dirección de correo, el motivo y la fecha. Sirve para dar cuenta de la decisión y poder responder si se impugna, y solo lo ven los administradores. El motivo se comunica por correo a la persona afectada en el momento en que se produce el cierre.",
   "Vengono eliminati dal server i suoi turni, i check-in, le impostazioni, i ruoli e l'anagrafica, e viene chiuso l'accesso.": "Se eliminan del servidor sus turnos, check-ins, ajustes, roles y ficha, y se cierra el acceso."
 });
+
+/* Scelta del nome utente. */
+Object.assign(window.I18N.es, {
+  "Ciao, {nome}.": "Hola, {nome}.",
+  "Continua": "Continuar",
+  "Da {0} a {1} caratteri: lettere, cifre, punto, trattino e trattino basso.": "De {0} a {1} caracteres: letras, cifras, punto, guion y guion bajo.",
+  "Il nome utente deve essere lungo da 3 a 20 caratteri.": "El nombre de usuario debe tener entre 3 y 20 caracteres.",
+  "Lo faccio dopo": "Lo haré más tarde",
+  "Manca solo questo. È il nome con cui il tuo account viene identificato: puoi cambiarlo quando vuoi dalle impostazioni.": "Solo falta esto. Es el nombre con el que se identifica tu cuenta: puedes cambiarlo cuando quieras desde los ajustes.",
+  "Nome utente aggiornato: {nome}.": "Nombre de usuario actualizado: {nome}.",
+  "Non è stato possibile salvare il nome utente. Riprova fra poco.": "No se ha podido guardar el nombre de usuario. Inténtalo de nuevo en un momento.",
+  "Questo nome utente è già di qualcun altro. Provane un altro.": "Este nombre de usuario ya es de otra persona. Prueba con otro.",
+  "Scegli un nome utente": "Elige un nombre de usuario",
+  "Sono ammessi solo lettere, cifre, punto, trattino e trattino basso.": "Solo se admiten letras, cifras, punto, guion y guion bajo."
+});

@@ -105,10 +105,12 @@ export async function registraProfilo(
 ): Promise<void> {
   if (!isConfigured() || !userId) return;
   try {
-    await getClient(getToken).from('profili').upsert(
-      { user_id: userId, username: username || '', ultimo_accesso: new Date().toISOString() },
-      { onConflict: 'user_id' }
-    );
+    // Il nome utente si scrive solo se Clerk ne ha uno: da quando lo chiediamo
+    // noi, la fonte è la tabella, e mandare stringa vuota a ogni accesso
+    // cancellerebbe il nome scelto la volta prima.
+    const riga: Record<string, unknown> = { user_id: userId, ultimo_accesso: new Date().toISOString() };
+    if (username) riga.username = username;
+    await getClient(getToken).from('profili').upsert(riga, { onConflict: 'user_id' });
   } catch {
     /* ignorato di proposito */
   }
@@ -130,6 +132,34 @@ export async function eliminaTuttoSulServer(
     if (error) return { fatto: false, errore: `${tabella}: ${error.message}` };
   }
   return { fatto: true, errore: null };
+}
+
+/* Il nome utente vive nella tabella `profili`, non su Clerk.
+
+   Lo chiedeva Clerk durante l'iscrizione, ma sul sito quella schermata la
+   serve il suo portale ospitato: chi si registrava finiva su un indirizzo che
+   non è il nostro. Chiedendolo dopo l'accesso, da entrambi i client, la
+   registrazione non esce mai dall'applicazione. */
+export async function leggiUsername(getToken: TokenGetter, userId: string): Promise<string | null> {
+  if (!isConfigured() || !userId) return null;
+  try {
+    const { data, error } = await getClient(getToken)
+      .from('profili').select('username').eq('user_id', userId).maybeSingle();
+    if (error) return null;
+    return (data?.username as string) ?? '';
+  } catch {
+    return null;      // non lo sappiamo: è diverso da "non ce l'ha"
+  }
+}
+
+export async function impostaUsername(
+  getToken: TokenGetter,
+  nome: string
+): Promise<{ ok: boolean; motivo?: string; username?: string }> {
+  if (!isConfigured()) return { ok: false, motivo: 'non-configurato' };
+  const { data, error } = await getClient(getToken).rpc('imposta_username', { p_username: nome });
+  if (error) return { ok: false, motivo: 'errore' };
+  return (data as { ok: boolean; motivo?: string; username?: string }) ?? { ok: false, motivo: 'errore' };
 }
 
 export async function syncNow(
