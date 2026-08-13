@@ -249,19 +249,45 @@ ed è dichiarato nell'informativa.
 
 ## 3. App — dallo sviluppo agli store
 
-### Provare subito (senza store)
+### Provare subito
 
 ```bash
 cd mobile
-npm install
+npm install          # crea anche mobile/.env da .env.example
 npx expo start
 ```
 
-> ⚠️ **Il geofencing in background non funziona in Expo Go.** Per provarlo serve una
-> build di sviluppo:
-> ```bash
-> npx eas build --profile development --platform android
-> ```
+**Expo Go serve solo per una prima occhiata**, e nemmeno sempre: supporta un SDK alla
+volta, quindi funziona unicamente se la versione installata sul telefono è quella
+dell'SDK del progetto (`sdkVersion` in `npx expo config --type public`). Se risponde
+*"Project is incompatible with this version of Expo Go"* la versione sul telefono è
+diversa: aggiornala dallo store, oppure passa direttamente alla build di sviluppo.
+
+In ogni caso **il geofencing in background in Expo Go non funziona**: registrare un task
+di sistema non è nelle sue possibilità. L'interruttore c'è e il permesso viene chiesto,
+ma la timbratura automatica non scatta.
+
+### Build di sviluppo (quella che serve davvero)
+
+```bash
+npm install -g eas-cli
+eas login                 # account Expo, gratuito
+eas init                  # riempie extra.eas.projectId in app.json
+eas build --profile development --platform android
+```
+
+Finita la build, installa l'APK sul telefono e collega il bundler:
+
+```bash
+npx expo start --dev-client
+```
+
+Il profilo `development` di `eas.json` ha `developmentClient: true`, e per questo il
+progetto dipende da `expo-dev-client`: senza quel pacchetto la build riesce ma produce
+un'app che il bundler non riesce ad agganciare.
+
+Per iOS su telefono fisico serve l'Apple Developer Program (99 €/anno); su Android no,
+ed è il motivo per cui conviene provare prima lì.
 
 ### Prerequisiti per la pubblicazione
 
